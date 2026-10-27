@@ -1,0 +1,983 @@
+{
+  "version": 1,
+  "author": "CoCIS Smart Control group",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "title",
+      "top": -530,
+      "left": -560,
+      "attrs": {
+        "text": "CoCIS Smart Control & Monitoring - ESP32-S3 (all terminals on one board)"
+      }
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "room1_ldr",
+      "top": -390,
+      "left": -273.67,
+      "attrs": {
+        "lux": "100"
+      }
+    },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "room1_pir",
+      "top": -400,
+      "left": -404.38,
+      "attrs": {
+        "delayTime": "3"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "room1_lamp",
+      "top": -350,
+      "left": -524.38,
+      "attrs": {
+        "color": "white"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "room1_lamp_r",
+      "top": -291.65,
+      "left": -499.38,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_room1",
+      "top": -430,
+      "left": -534.38,
+      "attrs": {
+        "text": "LECTURE ROOM 1  -  lamp (PWM)   |   PIR motion   |   LDR daylight"
+      }
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "room2_ldr",
+      "top": -205,
+      "left": -273.67,
+      "attrs": {
+        "lux": "100"
+      }
+    },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "room2_pir",
+      "top": -215,
+      "left": -404.38,
+      "attrs": {
+        "delayTime": "3"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "room2_lamp",
+      "top": -165,
+      "left": -524.38,
+      "attrs": {
+        "color": "white"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "room2_lamp_r",
+      "top": -106.65,
+      "left": -499.38,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_room2",
+      "top": -245,
+      "left": -534.38,
+      "attrs": {
+        "text": "LECTURE ROOM 2  -  lamp (PWM)   |   PIR motion   |   LDR daylight"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "card1",
+      "top": 110,
+      "left": -205,
+      "attrs": {
+        "color": "blue",
+        "key": "1",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_card1",
+      "top": 126,
+      "left": -355,
+      "attrs": {
+        "text": "[1] Card: Alice (student)"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "card2",
+      "top": 174,
+      "left": -205,
+      "attrs": {
+        "color": "green",
+        "key": "2",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_card2",
+      "top": 190,
+      "left": -355,
+      "attrs": {
+        "text": "[2] Card: Bob (staff)"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "card3",
+      "top": 238,
+      "left": -205,
+      "attrs": {
+        "color": "yellow",
+        "key": "3",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_card3",
+      "top": 254,
+      "left": -355,
+      "attrs": {
+        "text": "[3] Card: Carol (security)"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "card4",
+      "top": 302,
+      "left": -205,
+      "attrs": {
+        "color": "red",
+        "key": "4",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_card4",
+      "top": 318,
+      "left": -355,
+      "attrs": {
+        "text": "[4] Card: Admin (PIN 1234)"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_cards",
+      "top": 86,
+      "left": -355,
+      "attrs": {
+        "text": "RFID reader (simulated): one button per card"
+      }
+    },
+    {
+      "type": "wokwi-microsd-card",
+      "id": "sd",
+      "top": 380,
+      "left": -205,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_sd",
+      "top": 410,
+      "left": -355,
+      "attrs": {
+        "text": "microSD card\nhash-chained event log"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "top": 500,
+      "left": -200,
+      "attrs": {
+        "volume": "0.2"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_buzzer",
+      "top": 530,
+      "left": -350,
+      "attrs": {
+        "text": "Buzzer (entrance)"
+      }
+    },
+    {
+      "type": "wokwi-membrane-keypad",
+      "id": "keypad",
+      "top": -390,
+      "left": 120,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_keypad",
+      "top": -270,
+      "left": 400,
+      "attrs": {
+        "text": "ENTRANCE keypad\nA = admin login\n0-9 PIN, # submit\n* clear, D logout"
+      }
+    },
+    {
+      "type": "wokwi-lcd2004",
+      "id": "lcd",
+      "top": 83.58,
+      "left": 326,
+      "attrs": {
+        "pins": "i2c"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_lcd",
+      "top": 65.58,
+      "left": 330,
+      "attrs": {
+        "text": "LCD 20x4 (I2C 0x27): status, prompts"
+      }
+    },
+    {
+      "type": "wokwi-ds1307",
+      "id": "rtc",
+      "top": 283.58,
+      "left": 320.5,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_rtc",
+      "top": 313.58,
+      "left": 430,
+      "attrs": {
+        "text": "RTC DS1307 (I2C 0x68)\nkeeps time offline"
+      }
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "door_in",
+      "top": 393.58,
+      "left": 330,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_door_in",
+      "top": 443.58,
+      "left": 510,
+      "attrs": {
+        "text": "ENTRY door lock (servo)"
+      }
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "door_out",
+      "top": 523.58,
+      "left": 330,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_door_out",
+      "top": 573.58,
+      "left": 510,
+      "attrs": {
+        "text": "EXIT door lock (servo)"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "break_glass",
+      "top": 663.58,
+      "left": 330,
+      "attrs": {
+        "color": "red",
+        "key": "b",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_glass",
+      "top": 677.58,
+      "left": 410,
+      "attrs": {
+        "text": "[b] BREAK GLASS: emergency, all doors open"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_granted",
+      "top": 733.58,
+      "left": 390,
+      "attrs": {
+        "color": "green",
+        "flip": "1"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "led_granted_r",
+      "top": 783.93,
+      "left": 356.2,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_led",
+      "top": 753.58,
+      "left": 440,
+      "attrs": {
+        "text": "Access granted LED"
+      }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "reader_select",
+      "top": 823.58,
+      "left": 350,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_switch",
+      "top": 829.58,
+      "left": 400,
+      "attrs": {
+        "text": "Reader select: left = ENTRY (IN), right = EXIT (OUT)"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "esp:4",
+      "room1_ldr:AO",
+      "green",
+      [
+        "h-19.08",
+        "v-402.28"
+      ]
+    ],
+    [
+      "esp:5",
+      "room1_pir:OUT",
+      "green",
+      [
+        "h-27.08",
+        "v-363.38",
+        "h-336.46"
+      ]
+    ],
+    [
+      "esp:6",
+      "room1_lamp_r:2",
+      "green",
+      [
+        "h-35.08",
+        "v-362.98"
+      ]
+    ],
+    [
+      "room1_lamp_r:1",
+      "room1_lamp:A",
+      "green",
+      []
+    ],
+    [
+      "room1_ldr:VCC",
+      "room1_pir:VCC",
+      "red",
+      [
+        "h10",
+        "v-88",
+        "h-528.33",
+        "v192",
+        "h251.8"
+      ]
+    ],
+    [
+      "room1_ldr:GND",
+      "room1_pir:GND",
+      "black",
+      [
+        "h18",
+        "v-106",
+        "h-544.33",
+        "v208",
+        "h279.26"
+      ]
+    ],
+    [
+      "room1_lamp:C",
+      "room1_pir:GND",
+      "black",
+      [
+        "v46",
+        "h160.64"
+      ]
+    ],
+    [
+      "esp:7",
+      "room2_ldr:AO",
+      "green",
+      [
+        "h-43.08",
+        "v-246.08"
+      ]
+    ],
+    [
+      "esp:15",
+      "room2_pir:OUT",
+      "green",
+      [
+        "h-51.08",
+        "v-207.18",
+        "h-312.46"
+      ]
+    ],
+    [
+      "esp:16",
+      "room2_lamp_r:2",
+      "green",
+      [
+        "h-59.08",
+        "v-206.78"
+      ]
+    ],
+    [
+      "room2_lamp_r:1",
+      "room2_lamp:A",
+      "green",
+      []
+    ],
+    [
+      "room2_ldr:VCC",
+      "room1_ldr:VCC",
+      "red",
+      [
+        "h10",
+        "v-185"
+      ]
+    ],
+    [
+      "room2_ldr:GND",
+      "room1_ldr:GND",
+      "black",
+      [
+        "h18",
+        "v-185"
+      ]
+    ],
+    [
+      "room1_pir:VCC",
+      "room2_pir:VCC",
+      "red",
+      [
+        "v38",
+        "h-251.8",
+        "v185",
+        "h251.8"
+      ]
+    ],
+    [
+      "room1_pir:GND",
+      "room2_pir:GND",
+      "black",
+      [
+        "v46",
+        "h-279.26",
+        "v185",
+        "h279.26"
+      ]
+    ],
+    [
+      "room2_lamp:C",
+      "room2_pir:GND",
+      "black",
+      [
+        "v46",
+        "h160.64"
+      ]
+    ],
+    [
+      "esp:3V3.1",
+      "room1_ldr:VCC",
+      "red",
+      [
+        "h-11.08",
+        "v-490.98",
+        "h-85.67",
+        "v88"
+      ]
+    ],
+    [
+      "esp:GND.2",
+      "room1_ldr:GND",
+      "black",
+      [
+        "h8",
+        "v-498.98",
+        "h-183.1",
+        "v106"
+      ]
+    ],
+    [
+      "esp:17",
+      "card1:1.r",
+      "green",
+      [
+        "h-91.08",
+        "v7.62"
+      ]
+    ],
+    [
+      "esp:18",
+      "card2:1.r",
+      "green",
+      [
+        "h-83.08",
+        "v62.02"
+      ]
+    ],
+    [
+      "esp:8",
+      "card3:1.r",
+      "green",
+      [
+        "h-75.08",
+        "v116.42"
+      ]
+    ],
+    [
+      "esp:9",
+      "card4:1.r",
+      "green",
+      [
+        "h-67.08",
+        "v151.62"
+      ]
+    ],
+    [
+      "esp:10",
+      "sd:DO",
+      "orange",
+      [
+        "h-59.08",
+        "v225.89"
+      ]
+    ],
+    [
+      "esp:11",
+      "sd:SCK",
+      "orange",
+      [
+        "h-51.08",
+        "v235.6"
+      ]
+    ],
+    [
+      "esp:12",
+      "sd:DI",
+      "orange",
+      [
+        "h-43.08",
+        "v245.28"
+      ]
+    ],
+    [
+      "esp:13",
+      "sd:CS",
+      "orange",
+      [
+        "h-35.08",
+        "v245.13"
+      ]
+    ],
+    [
+      "esp:14",
+      "buzzer:2",
+      "green",
+      [
+        "h-27.08",
+        "v386.62",
+        "h-141"
+      ]
+    ],
+    [
+      "esp:GND.1",
+      "buzzer:1",
+      "black",
+      [
+        "h-11.08",
+        "v397.42",
+        "h-167"
+      ]
+    ],
+    [
+      "sd:VCC",
+      "esp:5V",
+      "red",
+      [
+        "h8",
+        "v190.37",
+        "h106.27",
+        "v-397.02"
+      ]
+    ],
+    [
+      "sd:GND",
+      "buzzer:1",
+      "black",
+      [
+        "h16",
+        "v219.54",
+        "h-60.73"
+      ]
+    ],
+    [
+      "card1:2.l",
+      "card2:2.l",
+      "black",
+      [
+        "h-12",
+        "v64"
+      ]
+    ],
+    [
+      "card2:2.l",
+      "card3:2.l",
+      "black",
+      [
+        "h-12",
+        "v64"
+      ]
+    ],
+    [
+      "card3:2.l",
+      "card4:2.l",
+      "black",
+      [
+        "h-12",
+        "v64"
+      ]
+    ],
+    [
+      "card4:2.l",
+      "buzzer:1",
+      "black",
+      [
+        "h-12",
+        "v294",
+        "h44"
+      ]
+    ],
+    [
+      "room2_pir:GND",
+      "buzzer:1",
+      "black",
+      [
+        "v46",
+        "h-279.26",
+        "v705",
+        "h455"
+      ]
+    ],
+    [
+      "esp:1",
+      "keypad:R1",
+      "purple",
+      [
+        "h128.57"
+      ]
+    ],
+    [
+      "esp:2",
+      "keypad:R2",
+      "purple",
+      [
+        "h138.57"
+      ]
+    ],
+    [
+      "esp:42",
+      "keypad:R3",
+      "purple",
+      [
+        "h148.07"
+      ]
+    ],
+    [
+      "esp:41",
+      "keypad:R4",
+      "purple",
+      [
+        "h157.57"
+      ]
+    ],
+    [
+      "esp:40",
+      "keypad:C1",
+      "purple",
+      [
+        "h167.07"
+      ]
+    ],
+    [
+      "esp:39",
+      "keypad:C2",
+      "purple",
+      [
+        "h176.57"
+      ]
+    ],
+    [
+      "esp:38",
+      "keypad:C3",
+      "purple",
+      [
+        "h186.32"
+      ]
+    ],
+    [
+      "esp:37",
+      "keypad:C4",
+      "purple",
+      [
+        "h196.07"
+      ]
+    ],
+    [
+      "esp:36",
+      "lcd:SDA",
+      "blue",
+      []
+    ],
+    [
+      "esp:35",
+      "lcd:SCL",
+      "blue",
+      []
+    ],
+    [
+      "esp:36",
+      "rtc:SDA",
+      "blue",
+      [
+        "h72",
+        "v183.5"
+      ]
+    ],
+    [
+      "esp:35",
+      "rtc:SCL",
+      "blue",
+      [
+        "h64",
+        "v183.4"
+      ]
+    ],
+    [
+      "esp:48",
+      "door_in:PWM",
+      "green",
+      [
+        "h56",
+        "v289.6"
+      ]
+    ],
+    [
+      "esp:47",
+      "door_out:PWM",
+      "green",
+      [
+        "h48",
+        "v410"
+      ]
+    ],
+    [
+      "esp:21",
+      "break_glass:1.l",
+      "green",
+      [
+        "h40",
+        "v484.4"
+      ]
+    ],
+    [
+      "esp:20",
+      "led_granted_r:1",
+      "green",
+      [
+        "h32",
+        "v587.8"
+      ]
+    ],
+    [
+      "led_granted_r:2",
+      "led_granted:A",
+      "green",
+      []
+    ],
+    [
+      "esp:19",
+      "reader_select:2",
+      "green",
+      [
+        "h24",
+        "v668.2",
+        "h250.57"
+      ]
+    ],
+    [
+      "lcd:GND",
+      "rtc:GND",
+      "black",
+      [
+        "h-22",
+        "v183"
+      ]
+    ],
+    [
+      "rtc:GND",
+      "door_in:GND",
+      "black",
+      [
+        "h-22",
+        "v145"
+      ]
+    ],
+    [
+      "door_in:GND",
+      "door_out:GND",
+      "black",
+      [
+        "h-22",
+        "v130"
+      ]
+    ],
+    [
+      "door_out:GND",
+      "break_glass:2.l",
+      "black",
+      [
+        "h-22",
+        "v122"
+      ]
+    ],
+    [
+      "break_glass:2.l",
+      "led_granted:C",
+      "black",
+      [
+        "h-22",
+        "v104",
+        "h97"
+      ]
+    ],
+    [
+      "reader_select:1",
+      "led_granted:C",
+      "black",
+      [
+        "v10",
+        "h-48.5",
+        "v-68",
+        "h97"
+      ]
+    ],
+    [
+      "esp:GND.4",
+      "reader_select:1",
+      "black",
+      [
+        "h8",
+        "v687",
+        "h208.57",
+        "v-50",
+        "h48.5"
+      ]
+    ],
+    [
+      "lcd:VCC",
+      "rtc:5V",
+      "red",
+      [
+        "h-30",
+        "v183.5"
+      ]
+    ],
+    [
+      "rtc:5V",
+      "door_in:V+",
+      "red",
+      [
+        "h-30",
+        "v144.5"
+      ]
+    ],
+    [
+      "door_in:V+",
+      "door_out:V+",
+      "red",
+      [
+        "h-30",
+        "v130"
+      ]
+    ],
+    [
+      "esp:5V",
+      "door_out:V+",
+      "red",
+      [
+        "h-19.08",
+        "v706.6",
+        "h314",
+        "v-344.5"
+      ]
+    ]
+  ],
+  "dependencies": {}
+}
