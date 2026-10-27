@@ -1,0 +1,168 @@
+// Cloud side of docs/event-schema.md.
+// `Event` is the raw, append-only log (exactly what the hub sent); the typed tables are
+// projections of it so pages can query without digging through JSON. Every table that
+// comes from an event carries (deviceId, seq) as a unique key, which is what makes
+// re-sending a batch harmless.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Device {
+  id         String    @id // e.g. "hub-01", sent as X-Device-Id
+  name       String
+  secret     String // HMAC-SHA256 key shared with the firmware
+  lastSeenAt DateTime?
+  lastSeq    Int? // highest seq acknowledged so far
+  createdAt  DateTime  @default(now())
+
+  events    Event[]
+  access    AccessEvent[]
+  rooms     RoomEvent[]
+  lights    LightEvent[]
+  energy    EnergySample[]
+  alerts    Alert[]
+  schedules ScheduleConfig[]
+  commands  Command[]
+}
+
+/// Raw event log, one row per hub event.
+model Event {
+  id         Int      @id @default(autoincrement())
+  deviceId   String
+  seq        Int
+  ts         DateTime // hub local time (EAT) converted to UTC
+  type       String
+  data       Json
+  hash       String? // SD-card hash chain value, kept for audit
+  receivedAt DateTime @default(now())
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, seq])
+  @@index([type, ts])
+}
+
+model AccessEvent {
+  id       Int      @id @default(autoincrement())
+  deviceId String
+  seq      Int
+  ts       DateTime
+  uid      String
+  name     String
+  role     String
+  side     String // IN | OUT
+  ok       Boolean
+  reason   String
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, seq])
+  @@index([uid, ts])
+  @@index([ts])
+}
+
+/// Room occupied <-> vacant transitions.
+model RoomEvent {
+  id       Int      @id @default(autoincrement())
+  deviceId String
+  seq      Int
+  ts       DateTime
+  room     Int
+  occupied Boolean
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, seq])
+  @@index([room, ts])
+}
+
+model LightEvent {
+  id       Int      @id @default(autoincrement())
+  deviceId String
+  seq      Int
+  ts       DateTime
+  room     Int
+  level    Int // 0-100 %
+  mode     String // AUTO | ON | OFF
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, seq])
+  @@index([room, ts])
+}
+
+/// Running energy totals per room since hub boot (sent every 10 min).
+model EnergySample {
+  id       Int      @id @default(autoincrement())
+  deviceId String
+  seq      Int
+  ts       DateTime
+  room     Int
+  onWh     Float
+  savedWh  Float
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, seq])
+  @@index([room, ts])
+}
+
+model Alert {
+  id           Int      @id @default(autoincrement())
+  deviceId     String
+  seq          Int
+  ts           DateTime
+  code         String
+  detail       String
+  acknowledged Boolean  @default(false)
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, seq])
+  @@index([ts])
+}
+
+// ---- Day 2 placeholders: cloud proposes, device pulls and decides ----
+
+/// Versioned schedule; the device applies a version only if it is newer than its own.
+model ScheduleConfig {
+  id        Int      @id @default(autoincrement())
+  deviceId  String
+  version   Int
+  config    Json
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, version])
+}
+
+enum CommandStatus {
+  PENDING
+  ACKED
+  REJECTED
+}
+
+/// Pulled by the device via GET /api/devices/:id/commands, then acknowledged.
+model Command {
+  id        Int           @id @default(autoincrement())
+  deviceId  String
+  type      String // e.g. SET_SCHEDULE, LIGHT_MODE
+  payload   Json
+  version   Int
+  status    CommandStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  ackedAt   DateTime?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@index([deviceId, status])
+}
