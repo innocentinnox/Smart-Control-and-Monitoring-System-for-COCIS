@@ -1,0 +1,15 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# 1 ms scheduler tick so pdMS_TO_TICKS() is exact
+CONFIG_FREERTOS_HZ=1000
+
+# Room for the Day-2 Wi-Fi / HTTP server / TLS code
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# Serial menu runs on UART0, which Wokwi wires to its serial monitor
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# Larger main task: app_main does all the bring-up
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=6144

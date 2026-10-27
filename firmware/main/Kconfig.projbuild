@@ -1,0 +1,59 @@
+menu "CoCIS Smart Control"
+
+    config COCIS_OPEN_HOUR
+        int "Default opening hour (0-23)"
+        range 0 23
+        default 7
+        help
+            Used on first boot only; afterwards the schedule lives in NVS
+            and is changed with the "schedule set" command.
+
+    config COCIS_CLOSE_HOUR
+        int "Default closing hour (0-23)"
+        range 0 23
+        default 22
+
+    config COCIS_DOOR_OPEN_MS
+        int "Door stays open for (ms)"
+        default 3000
+
+    config COCIS_ESCORT_S
+        int "After-hours escort window (s)"
+        default 60
+        help
+            A security/admin card used at the exit after hours lets other
+            people out for this long.
+
+    config COCIS_ADMIN_SESSION_S
+        int "Admin session length (s)"
+        default 300
+
+    config COCIS_ROOM_GRACE_S
+        int "Room vacant after no motion for (s)"
+        default 30
+        help
+            Short for the demo; a real lecture room would use 10-15 minutes.
+
+    config COCIS_ROOM_WARN_S
+        int "Dim warning before lights off (s)"
+        default 10
+
+    config COCIS_DARK_LUX
+        int "Lights needed at or below (lux)"
+        default 150
+
+    config COCIS_BRIGHT_LUX
+        int "Daylight sufficient at or above (lux)"
+        default 400
+
+    config COCIS_LAMP_WATTS
+        int "Lamp power per room at 100% (W)"
+        default 360
+        help
+            E.g. 10 x 36 W fluorescent tubes. Used for the energy estimate.
+
+    config COCIS_NODE_TIMEOUT_S
+        int "Room node offline after silence of (s)"
+        default 15
+
+endmenu
