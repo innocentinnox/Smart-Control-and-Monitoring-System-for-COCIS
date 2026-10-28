@@ -19,7 +19,7 @@
 /* One queue (inbox) per node, indexed by node_id_t. */
 static QueueHandle_t s_inbox[NODE_COUNT];
 
-/* Several tasks send as NODE_HUB (keypad, card buttons, break-glass, CLI).
+/* Several tasks send as NODE_HUB (RFID readers, break-glass, CLI).
  * "Take the next seq" and "put it in the queue" must happen as one step,
  * otherwise seq 11 could overtake seq 10 and the receiver would reject 10
  * as stale. A per-sender mutex makes the pair atomic.

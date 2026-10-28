@@ -1,16 +1,16 @@
 /* CoCIS Smart Control & Monitoring System - boot sequence.
  *
  * app_main only wires the system together; every behaviour lives in a
- * component (see docs/REPORT.md for the architecture):
+ * component (see docs/report.pdf for the architecture):
  *
  *   common      shared types, pin map, task table, SHA-256
  *   core_logic  pure rules: access policy, room lighting, admin 2FA (host-tested)
- *   drivers     I2C/LCD/RTC/keypad/buttons/PWM/ADC
+ *   drivers     I2C/LCD/RTC/MFRC522 RFID/buttons/PWM/ADC
  *   bus         message passing between the three terminals
  *   storage     SD-card gatekeeper task + hash-chained event log
  *   services    users, config, occupancy ledger, auth, clock (mutex + NVS)
  *   ui          LCD + buzzer + LED task
- *   nodes       entrance hub, room nodes, door, RFID front-end
+ *   nodes       entrance hub, room nodes, door, RFID readers
  *   cli         serial management menu
  *
  * Order matters: time first (log timestamps), then the log, then the state
@@ -27,6 +27,8 @@
 #include "config.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "hub.h"
 #include "i2c_bus.h"
 #include "light_sensor.h"
@@ -34,6 +36,7 @@
 #include "occupancy.h"
 #include "room_node.h"
 #include "storage.h"
+#include "task_config.h"
 #include "auth.h"
 #include "users.h"
 
@@ -68,7 +71,11 @@ static const char *reset_reason_str(esp_reset_reason_t r)
     }
 }
 
-void app_main(void)
+/* The whole bring-up, run in its own task so its stack size is ours to
+ * choose (TASK_BOOT_STACK) rather than the main task's, which is only 3.5 KB
+ * in a default ESP-IDF build such as the wokwi.com online builder.
+ * @param arg  unused */
+static void boot_task(void *arg)
 {
     /* ESP_ERROR_CHECK(): if a call fails, print the error and reboot. Used
      * for steps the system cannot work without. Optional parts (RTC, SD
@@ -120,4 +127,12 @@ void app_main(void)
 
     /* 6. Serial management menu (runs in its own task) */
     cli_start();
+
+    /* Bring-up done; every component now runs in its own task. */
+    vTaskDelete(NULL);
+}
+
+void app_main(void)
+{
+    xTaskCreate(boot_task, "boot", TASK_BOOT_STACK, NULL, TASK_BOOT_PRIO, NULL);
 }

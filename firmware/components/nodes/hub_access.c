@@ -2,8 +2,9 @@
  *
  * Runs in the hub task only. The flow of one card scan:
  *
- *   1. Is an admin login waiting for a card? Then this card is the login's
- *      first factor, not a door request -> hand it to auth and stop.
+ *   1. Is an admin login waiting for a card, and is this an admin card? Then
+ *      it is the login's first factor, not a door request -> hand it to auth
+ *      and stop.
  *   2. Look the card up in the user registry.
  *   3. Collect every fact the rules need (build_request()).
  *   4. Ask the pure policy for a verdict (access_decide()).
@@ -25,7 +26,7 @@
 #include "config.h"
 #include "door.h"
 #include "occupancy.h"
-#include "sdkconfig.h"
+#include "cocis_kconfig.h"
 #include "storage.h"
 #include "ui.h"
 #include "users.h"
@@ -112,24 +113,25 @@ static void announce(access_reason_t reason, door_side_t side, const char *name)
 
 void hub_access_handle_scan(card_uid_t uid, door_side_t side)
 {
-    /* Step 1. During an admin login the card is the first factor, not a door
-     * request. The user pressed 'A' on the keypad, so auth is in WAIT_CARD:
-     * pass the card to auth (which checks it is an enabled ADMIN card with a
-     * PIN), then ask for the PIN or say no. No door opens in this case, and
-     * the reader side does not matter. Any old PIN digits are discarded.
-     * The PIN prompt stays 30 s (the time allowed to type it). */
-    if (auth_state() == AUTH_ST_WAIT_CARD) {
-        hub_keypad_reset();
+    /* Step 2 (done first, step 1 needs the role). Who is this?
+     * users_find() copies the record into u. */
+    user_t u;
+    bool known = users_find(uid, &u);
+
+    /* Step 1. Someone typed "login" on the console, so auth waits for the
+     * first factor. An ADMIN card at either reader is that factor: pass it to
+     * auth (which also checks it is enabled and has a PIN) and ask for the
+     * PIN; no door opens. Any other card is an ordinary door request, so
+     * people keep coming and going while the admin logs in. The PIN prompt
+     * stays 30 s (the time allowed to type it). */
+    if (auth_state() == AUTH_ST_WAIT_CARD && known && u.role == ROLE_ADMIN) {
         auth_result_t r = auth_card(uid);
-        ui_message("Admin login", r == AUTH_CARD_OK ? "Enter 4-digit PIN" : "Not an admin card",
+        ui_message("Admin login", r == AUTH_CARD_OK ? "PIN on console" : "Card not allowed",
                    r == AUTH_CARD_OK ? 30000 : MSG_MS);
         ui_feedback(r == AUTH_CARD_OK ? UI_SOUND_INFO : UI_SOUND_DENIED);
         return;
     }
 
-    /* Step 2. Who is this? users_find() copies the record into u. */
-    user_t u;
-    bool known = users_find(uid, &u);
     const char *name = known ? u.name : "unknown";
     /* Steps 3-4. Facts -> verdict. reason says WHY (also for the log);
      * access_granted() turns it into yes/no. */
@@ -145,7 +147,7 @@ void hub_access_handle_scan(card_uid_t uid, door_side_t side)
         door_open(side, CONFIG_COCIS_DOOR_OPEN_MS);
     }
     /* Step 6. Statistics and the tamper-evident audit record, e.g.
-     * "uid=A1B2C3D4 name=Alice role=STUDENT side=IN ok=1 reason=OK". */
+     * "uid=01020304 name=Alice role=STUDENT side=IN ok=1 reason=OK". */
     hub_count_access(granted);
     cocis_log(LOG_ACCESS, "uid=%08lX name=%s role=%s side=%s ok=%d reason=%s", (unsigned long)uid,
               name, known ? role_str(u.role) : "NONE", side_str(side), granted,

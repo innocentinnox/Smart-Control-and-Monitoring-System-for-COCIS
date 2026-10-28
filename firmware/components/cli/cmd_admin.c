@@ -26,9 +26,10 @@
 /* ---------------- login / logout ---------------- */
 
 /* Two-step login from the console:
- *   "login"        -> arm the FSM; the admin then taps the admin card,
- *   "login <PIN>"  -> second factor, only accepted after the card step.
- * The PIN can also be typed on the keypad instead (hub_keypad.c). */
+ *   "login"        -> arm the FSM; the admin then taps the admin card at
+ *                     either RFID reader (factor 1: something you have),
+ *   "login <PIN>"  -> factor 2 (something you know), only accepted after
+ *                     the card step. */
 static int cmd_login(int argc, char **argv)
 {
     if (argc == 1) {
@@ -36,8 +37,8 @@ static int cmd_login(int argc, char **argv)
             printf("Login locked after failed attempts, try again in a minute.\n");
             return 1;
         }
-        printf("Tap the ADMIN card (Card 4) at the entrance within 30 s,\n"
-               "then type 'login <PIN>' here (or the 4-digit PIN on the keypad).\n");
+        printf("Tap the ADMIN card (Red card) at either RFID reader within 30 s,\n"
+               "then type 'login <PIN>' here.\n");
         return 0;
     }
     /* A PIN without a card first is refused here with a clear message
@@ -131,7 +132,7 @@ static int cmd_schedule(int argc, char **argv)
 
 /* "user add <UID> <name> <role> [PIN]"  -> register a card
  * "user del|enable|disable <UID>"       -> remove / unblock / block a card
- * UID is 1..8 hex digits (e.g. A1B2C3D4). Name/PIN rules are checked by
+ * UID is 1..8 hex digits (e.g. 01020304). Name/PIN rules are checked by
  * users_add(); its error code is printed if it refuses. */
 static int cmd_user(int argc, char **argv)
 {

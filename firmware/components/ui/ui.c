@@ -104,7 +104,7 @@ static void room_cell(char *out, size_t len, int room, const ui_status_t *st)
 /* Every row is formatted to exactly LCD_COLS (20) characters:
  *   "CoCIS 09:15:45  OPEN"
  *   "Hours 07:00-22:00"
- *   "In:3   Rdr:OUT ADMIN"
+ *   "Inside: 3      ADMIN"
  *   "R1 100% P-R2   0% -S"
  * Builds all four rows from a fresh status snapshot; draw_row() then sends
  * only the rows that differ from what is already displayed. */
@@ -128,8 +128,8 @@ static void redraw(void)
     if (time_reached_ms(clock_ms(), s_msg_until)) {
         snprintf(row, sizeof(row), "Hours %s", st.hours);
         draw_row(1, row);
-        snprintf(row, sizeof(row), "In:%-3u Rdr:%-3s %s", (unsigned)st.inside,
-                 side_str(st.reader), st.admin ? "ADMIN" : "");
+        snprintf(row, sizeof(row), "Inside: %-3u    %s", (unsigned)st.inside,
+                 st.admin ? "ADMIN" : "");
         draw_row(2, row);
     } else {
         draw_row(1, s_msg[0]);
@@ -162,9 +162,6 @@ static void play(ui_sound_t s)
             buzzer_tone(400, 120);
             vTaskDelay(pdMS_TO_TICKS(80));
         }
-        break;
-    case UI_SOUND_KEY:
-        buzzer_tone(1500, 30);
         break;
     case UI_SOUND_ALARM:
         /* Alternating two-tone siren, 4 cycles */

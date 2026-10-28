@@ -1,17 +1,29 @@
-/* SHA-256 helpers on top of PSA Crypto (see cocis_crypto.h).
+/* SHA-256 helpers (see cocis_crypto.h).
  *
- * PSA is a "multi-part" API: setup -> update (any number of times) ->
- * finish. That is what lets cocis_sha256() hash two separate buffers as if
- * they were one, without copying them into a temporary buffer.
+ * The hash is computed in "multi-part" style: start -> update (any number of
+ * times) -> finish. That is what lets cocis_sha256() hash two separate
+ * buffers as if they were one, without copying them into a temporary buffer.
+ *
+ * ESP-IDF v6 ships mbedtls 4, where hashing goes through the PSA Crypto API;
+ * ESP-IDF v5 (used by the wokwi.com online builder) still has the classic
+ * mbedtls_sha256_* functions. Both produce the same digest.
  */
 #include "cocis_crypto.h"
 
 #include <string.h>
 
+#include "esp_idf_version.h"
 #include "esp_log.h"
+
+#if ESP_IDF_VERSION_MAJOR >= 6
 #include "psa/crypto.h"
+#else
+#include "mbedtls/sha256.h"
+#endif
 
 static const char *TAG = "crypto";
+
+#if ESP_IDF_VERSION_MAJOR >= 6
 
 esp_err_t cocis_sha256(const void *a, size_t a_len, const void *b, size_t b_len,
                        uint8_t out[SHA256_LEN])
@@ -44,6 +56,35 @@ esp_err_t cocis_sha256(const void *a, size_t a_len, const void *b, size_t b_len,
     }
     return ESP_OK;
 }
+
+#else   /* ESP-IDF v5: classic mbedtls */
+
+esp_err_t cocis_sha256(const void *a, size_t a_len, const void *b, size_t b_len,
+                       uint8_t out[SHA256_LEN])
+{
+    mbedtls_sha256_context ctx;
+    mbedtls_sha256_init(&ctx);
+    /* Same single-exit style as the PSA version: 0 means success. */
+    int rc = mbedtls_sha256_starts(&ctx, 0);            /* 0 = SHA-256, not SHA-224 */
+    if (rc == 0) {
+        rc = mbedtls_sha256_update(&ctx, a, a_len);
+    }
+    if (rc == 0 && b) {
+        rc = mbedtls_sha256_update(&ctx, b, b_len);
+    }
+    if (rc == 0) {
+        rc = mbedtls_sha256_finish(&ctx, out);
+    }
+    mbedtls_sha256_free(&ctx);
+    if (rc != 0) {
+        memset(out, 0, SHA256_LEN);         /* never leave garbage behind */
+        ESP_LOGE(TAG, "SHA-256 failed (mbedtls error %d)", rc);
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
+#endif
 
 bool cocis_crypto_selftest(void)
 {

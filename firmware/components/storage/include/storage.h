@@ -12,7 +12,7 @@
  * most recent lines are kept in a RAM ring buffer instead.
  *
  * Line format:   seq|timestamp|TYPE|k=v k=v ...|hash
- *   e.g.         000042|2026-10-28T09:15:03|ACCESS|uid=A1B2C3D4 ...|5f1c...
+ *   e.g.         000042|2026-10-28T09:15:03|ACCESS|uid=01020304 ...|5f1c...
  *   hash = hex SHA-256( previous line's hash + "|" + everything before the
  *          last '|' of this line ). The first line of each day file uses a
  *          "genesis" previous hash of 64 zeros.

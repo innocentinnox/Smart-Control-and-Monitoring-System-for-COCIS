@@ -21,7 +21,7 @@ static int cmd_tap(int argc, char **argv)
     card_uid_t uid;
     door_side_t side;
     if (argc < 3 || !card_uid_parse(argv[1], &uid) || !side_parse(argv[2], &side)) {
-        return cli_usage("tap <UID> in|out   e.g. tap A1B2C3D4 in");
+        return cli_usage("tap <UID> in|out   e.g. tap C0FFEE99 in");
     }
     /* Fails (exit code 1) only if the hub inbox stayed full. */
     return rfid_inject(uid, side) ? 0 : 1;

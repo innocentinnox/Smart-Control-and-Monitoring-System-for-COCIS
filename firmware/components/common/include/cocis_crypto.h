@@ -1,4 +1,4 @@
-/* Thin wrapper over the PSA Crypto API (mbedtls 4 in ESP-IDF v6) so the rest
+/* Thin SHA-256 wrapper (PSA Crypto on ESP-IDF v6, classic mbedtls on v5) so the rest
  * of the code needs one call to hash, and never touches crypto contexts.
  *
  * Who uses it:

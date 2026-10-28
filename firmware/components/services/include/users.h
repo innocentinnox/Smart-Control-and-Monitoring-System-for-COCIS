@@ -23,8 +23,8 @@
 
 #define USERS_MAX      32           /* capacity of the registry (cards) */
 #define PIN_SALT_LEN   8            /* random salt bytes per user */
-/* Exactly 4 digits so the same PIN can be typed on the 4x4 keypad or the
- * console, and pin_valid() can reject anything else. */
+/* Exactly 4 digits: one fixed format, so pin_valid() can reject anything
+ * else before it is hashed or checked. */
 #define PIN_LEN        4            /* PINs are exactly 4 digits */
 #define DEMO_CARD_COUNT 4           /* cards seeded on first boot */
 
@@ -104,10 +104,3 @@ esp_err_t users_set_enabled(card_uid_t uid, bool enabled, card_uid_t by);
  * @return true only if the card exists, has a PIN, and the hash matches.
  */
 bool users_verify_pin(card_uid_t uid, const char *pin);
-
-/* UID of demo card i (0..3) = the Wokwi card buttons 1..4.
- *
- * @param i  button index 0..DEMO_CARD_COUNT-1.
- * @return that card's UID, or CARD_UID_NONE if i is out of range.
- */
-card_uid_t users_demo_card(int i);

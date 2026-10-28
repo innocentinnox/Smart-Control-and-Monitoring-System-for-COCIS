@@ -1,6 +1,6 @@
 /* Entrance hub: the single authority of the system.
  *
- * One task consumes the hub inbox (card scans, keypad, break-glass, room
+ * One task consumes the hub inbox (card scans, break-glass, room
  * reports) and is the only writer of the occupancy ledger and the room
  * table. Serialising every decision through one task is the main answer to
  * the race-condition requirement: two scans can never be decided at once.
@@ -11,8 +11,8 @@
  * Source files:
  *   hub.c         the hub task, message dispatch, room table, node health,
  *                 break-glass, periodic duties (energy log)
- *   hub_access.c  card scan -> access decision -> door / ledger / log / LCD
- *   hub_keypad.c  keypad -> admin login (card + PIN)
+ *   hub_access.c  card scan -> admin login card, or access decision ->
+ *                 door / ledger / log / LCD
  */
 #pragma once
 
@@ -39,7 +39,7 @@ typedef struct {
     uint32_t alerts;            /* ALERT events raised (any kind)       */
 } hub_stats_t;
 
-/* Initialise the hub's devices (doors, LCD/ui, RFID buttons, keypad,
+/* Initialise the hub's devices (doors, LCD/ui, the two RFID readers, the
  * break-glass button) and start the hub task.
  * Call once at boot, after storage, users, config, occupancy, auth and the
  * bus are initialised (see main.c), because the hub uses all of them. */

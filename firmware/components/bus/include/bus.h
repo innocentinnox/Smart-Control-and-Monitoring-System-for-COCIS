@@ -26,7 +26,6 @@
 /* What a message means; selects which member of the union below is valid. */
 typedef enum {
     MSG_CARD_SCAN,      /* reader  -> HUB  */
-    MSG_KEY,            /* keypad  -> HUB  */
     MSG_BREAK_GLASS,    /* button  -> HUB  */
     MSG_ROOM_STATE,     /* ROOMn   -> HUB  */
     MSG_HEARTBEAT,      /* ROOMn   -> HUB  */
@@ -37,8 +36,8 @@ typedef enum {
  * which is what a FreeRTOS queue needs. Read only the union member that
  * matches `type`:
  *   MSG_CARD_SCAN  -> scan        MSG_ROOM_STATE -> room
- *   MSG_KEY        -> key         MSG_HEARTBEAT  -> heartbeat
- *   MSG_LIGHT_CMD  -> light       MSG_BREAK_GLASS: no payload */
+ *   MSG_LIGHT_CMD  -> light       MSG_HEARTBEAT  -> heartbeat
+ *   MSG_BREAK_GLASS: no payload */
 typedef struct {
     node_id_t      src;     /* filled in by bus_send() */
     uint32_t       seq;     /* filled in by bus_send() */
@@ -47,8 +46,6 @@ typedef struct {
     union {
         /* a card held at the entry (SIDE_IN) or exit (SIDE_OUT) reader */
         struct { card_uid_t uid; door_side_t side; } scan;
-        /* one keypad character: '0'-'9', 'A'-'D', '*' or '#' */
-        struct { char key; } key;
         /* room snapshot, sent on changes and periodically (see room_logic.h) */
         struct {
             /* someone is in the room */

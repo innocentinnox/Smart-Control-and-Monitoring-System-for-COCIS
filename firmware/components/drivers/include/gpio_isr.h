@@ -2,9 +2,9 @@
  *
  * ESP-IDF's "GPIO ISR service" is one interrupt handler that dispatches to
  * a separate per-pin handler (registered with gpio_isr_handler_add()). It
- * must be installed exactly once before any per-pin handler is added; both
- * the keypad and the buttons drivers need it, so they call this helper
- * instead of installing it themselves.
+ * must be installed exactly once before any per-pin handler is added, so
+ * every driver that uses pin interrupts (today: the buttons driver) calls
+ * this helper instead of installing it itself.
  */
 #pragma once
 

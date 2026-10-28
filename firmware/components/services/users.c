@@ -23,20 +23,21 @@
 static const char *TAG = "users";
 #define NVS_KEY "users"             /* NVS key of the registry blob */
 
-/* Demo cards: one per Wokwi push-button (see docs/event-schema.md 1).
- * They are written into the registry on first boot so the system can be
- * demonstrated straight away. Only "Admin" has a PIN (1234), because only
- * admins can log in to the management console. */
+/* Demo cards: the UIDs of the Wokwi MFRC522 preset cards (Blue, Green,
+ * Yellow, Red; see docs/event-schema.md 1). They are written into the
+ * registry on first boot so the system can be demonstrated straight away.
+ * The Key Fob (C0FFEE99) is deliberately left unregistered. Only "Admin" has
+ * a PIN (1234), because only admins can log in to the management console. */
 static const struct {
     card_uid_t uid;
     const char *name;
     role_t role;
     const char *pin;                /* NULL = no PIN */
 } DEMO_CARDS[DEMO_CARD_COUNT] = {
-    { 0xA1B2C3D4, "Alice", ROLE_STUDENT,  NULL   },
-    { 0xB2C3D4E5, "Bob",   ROLE_STAFF,    NULL   },
-    { 0xC3D4E5F6, "Carol", ROLE_SECURITY, NULL   },
-    { 0xD4E5F6A7, "Admin", ROLE_ADMIN,    "1234" },
+    { 0x01020304, "Alice", ROLE_STUDENT,  NULL   },     /* Blue card   */
+    { 0x11223344, "Bob",   ROLE_STAFF,    NULL   },     /* Green card  */
+    { 0x55667788, "Carol", ROLE_SECURITY, NULL   },     /* Yellow card */
+    { 0xAABBCCDD, "Admin", ROLE_ADMIN,    "1234" },     /* Red card    */
 };
 
 /* The whole registry is one blob, saved atomically after every change.
@@ -44,7 +45,7 @@ static const struct {
  * an older blob is then discarded and the demo cards are re-seeded.
  * (A size change is caught by nvs_store_load() anyway; the version also
  * catches changes that keep the same size, e.g. a new meaning of a field.) */
-#define REGISTRY_VERSION 2
+#define REGISTRY_VERSION 3
 
 /* Exact layout of the NVS blob. */
 typedef struct {
@@ -264,10 +265,4 @@ bool users_verify_pin(card_uid_t uid, const char *pin)
     }
     UNLOCK();
     return ok;
-}
-
-card_uid_t users_demo_card(int i)
-{
-    /* Reads only the const DEMO_CARDS table, so no lock is needed. */
-    return (i >= 0 && i < DEMO_CARD_COUNT) ? DEMO_CARDS[i].uid : CARD_UID_NONE;
 }

@@ -5,7 +5,7 @@
  *     +--------------+--------------------------- +-------- session expires / logout
  *
  * Factor 1 = something you have (admin RFID card), factor 2 = something you
- * know (PIN, typed on the keypad or the serial console). Only during a SESSION
+ * know (PIN, typed on the serial console). Only during a SESSION
  * may the schedule, users, clock or light overrides be changed.
  *
  * The PIN itself is checked by the caller (users_verify_pin); this module only
@@ -20,7 +20,7 @@
  * Not thread-safe by itself: one auth_fsm_t must be used by one task at a
  * time. The services/auth.c wrapper owns the single instance and guards
  * every call with a mutex, because more than one task can drive a login
- * (e.g. the hub for card/keypad input and the serial console for PINs).
+ * (the hub for the card at a reader, the serial console for the PIN).
  *
  * Every event function returns an auth_result_t telling the caller what to
  * show / log; AUTH_NONE means "nothing happened" (e.g. an event that does not

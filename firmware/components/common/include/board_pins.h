@@ -5,10 +5,10 @@
  * the simulated wiring can never disagree with the firmware.
  *
  * The assignment follows the board's physical pin order so the diagram
- * wires never cross:
- *   left header  (top -> bottom): rooms, card buttons, SD card, buzzer
- *   right header (top -> bottom): keypad, I2C (LCD + RTC), doors, break-glass,
- *                                 granted LED, reader switch
+ * stays tidy:
+ *   left header  (top -> bottom): rooms, SD card, buzzer
+ *   right header (top -> bottom): RFID readers, I2C (LCD + RTC), doors,
+ *                                 break-glass, granted LED
  * LDRs must be on ADC1 (GPIO 1-10): ADC2 is shared with the Wi-Fi radio and
  * cannot be read reliably while it is on. Strapping pins 0, 3, 45, 46 are
  * read by the chip at reset to pick the boot mode, so they are left unused.
@@ -34,14 +34,6 @@
 #define PIN_ROOM2_PIR       GPIO_NUM_15
 #define PIN_ROOM2_LIGHT     GPIO_NUM_16
 
-/* Simulated RFID reader: one push-button per demo card + a switch that
- * says which reader (entry or exit side) the card is held against.
- * Each button maps to one fixed demo card UID in the hub's user registry. */
-#define PIN_CARD_BTN_1      GPIO_NUM_17
-#define PIN_CARD_BTN_2      GPIO_NUM_18
-#define PIN_CARD_BTN_3      GPIO_NUM_8
-#define PIN_CARD_BTN_4      GPIO_NUM_9
-
 /* ---------------- SD card on SPI2 (routed through the GPIO matrix) ----------------
  * The SD card is driven in SPI mode (4 wires). The ESP32-S3 GPIO matrix lets
  * any pin carry an SPI signal, so these were picked for neat wiring. Only the
@@ -56,17 +48,19 @@
 
 /* ================= Right header ================= */
 
-/* 4x4 matrix keypad. Scanning: drive one row low at a time and see which
- * column reads low. Columns are inputs with pull-ups and a GPIO interrupt,
- * so a key press wakes the keypad task instead of it polling all the time. */
-#define PIN_KEYPAD_R1       GPIO_NUM_1      /* rows: open-drain outputs */
-#define PIN_KEYPAD_R2       GPIO_NUM_2
-#define PIN_KEYPAD_R3       GPIO_NUM_42
-#define PIN_KEYPAD_R4       GPIO_NUM_41
-#define PIN_KEYPAD_C1       GPIO_NUM_40     /* columns: pull-up inputs + IRQ */
-#define PIN_KEYPAD_C2       GPIO_NUM_39
-#define PIN_KEYPAD_C3       GPIO_NUM_38
-#define PIN_KEYPAD_C4       GPIO_NUM_37
+/* ---------------- RFID readers: two MFRC522 on their own SPI bus (SPI3) ----------------
+ * The entrance has one reader on the entry side and one on the exit side.
+ * Both share the bus wires (SCK, MOSI, MISO) and the reset line; each has its
+ * own chip-select (the reader's "SDA" pin), so the driver talks to one reader
+ * at a time. A separate bus from the SD card means the card reads never wait
+ * for log writes. Only the rfid task uses this bus (see rfid.h). */
+#define PIN_RFID_IN_CS      GPIO_NUM_1      /* entry reader SDA (chip select) */
+#define PIN_RFID_SCK        GPIO_NUM_2
+#define PIN_RFID_MOSI       GPIO_NUM_42
+#define PIN_RFID_MISO       GPIO_NUM_41
+#define PIN_RFID_RST        GPIO_NUM_40     /* both readers, active low */
+#define PIN_RFID_OUT_CS     GPIO_NUM_39     /* exit reader SDA (chip select) */
+#define RFID_SPI_HZ         4000000         /* 4 MHz; the MFRC522 allows up to 10 MHz */
 
 /* ---------------- Shared I2C bus: LCD2004 (0x27) + DS1307 RTC (0x68) ----------------
  * I2C is a 2-wire bus (data + clock) where several chips share the same wires
@@ -81,12 +75,11 @@
 /* ---------------- Entrance terminal ----------------
  * Two servo motors stand in for the entry and exit door locks. Break-glass is
  * the emergency button (opens the doors). LED_GRANTED lights on an accepted
- * card. READER_SELECT is a switch that picks which side the card is read on. */
+ * card. */
 #define PIN_DOOR_IN_SERVO   GPIO_NUM_48
 #define PIN_DOOR_OUT_SERVO  GPIO_NUM_47
 #define PIN_BREAK_GLASS     GPIO_NUM_21
 #define PIN_LED_GRANTED     GPIO_NUM_20
-#define PIN_READER_SELECT   GPIO_NUM_19     /* low = entry (IN) reader */
 
 /* ---------------- LEDC (PWM) allocation: one owner per channel ----------------
  * LEDC is the ESP32 PWM peripheral. A "timer" sets the PWM frequency; a

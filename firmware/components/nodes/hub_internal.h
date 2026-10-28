@@ -1,5 +1,4 @@
-/* Private interface between the hub's source files (hub.c, hub_access.c,
- * hub_keypad.c). Everything here runs in the hub task only, so these
+/* Private interface between the hub's source files (hub.c, hub_access.c). Everything here runs in the hub task only, so these
  * functions do not need their own locking (except where hub.c shares data
  * with other tasks; it takes its mutex itself). */
 #pragma once
@@ -17,14 +16,6 @@ void hub_access_handle_scan(card_uid_t uid, door_side_t side);
 /* Once-per-second duty of hub_access.c: closes the escort window when its
  * time is up. Called by the hub task's 1 s tick. */
 void hub_access_tick(void);
-
-/* Handle one keypad key (a MSG_KEY from the hub inbox): drives the admin
- * login (A = start, digits = PIN, * = clear, # = submit, D = log out).
- * @param key  the key character: '0'-'9', 'A'-'D', '*' or '#' */
-void hub_keypad_handle(char key);
-
-/* Forget any half-typed PIN digits. */
-void hub_keypad_reset(void);
 
 /* Counters and alerts live in hub.c */
 

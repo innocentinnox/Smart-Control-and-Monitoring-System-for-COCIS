@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 /* ---------------- Identities ---------------- */
-typedef uint32_t card_uid_t;            /* printed as 8 hex digits, e.g. A1B2C3D4 */
+typedef uint32_t card_uid_t;            /* printed as 8 hex digits, e.g. 01020304 */
 #define CARD_UID_NONE   0u              /* "no card"; never a valid UID */
 #define USER_NAME_MAX   16              /* including the terminating NUL */
 

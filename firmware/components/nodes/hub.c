@@ -2,7 +2,7 @@
  *
  * The hub task is an endless loop that:
  *   1. waits (up to 250 ms) for the next message in the hub inbox and hands
- *      it to the right handler (card scan, key, break-glass, room report),
+ *      it to the right handler (card scan, break-glass, room report),
  *   2. once per second runs the time-based duties (admin login timeouts,
  *      escort window, room node timeouts),
  *   3. every 10 minutes writes an ENERGY record per room.
@@ -29,10 +29,9 @@
 #include "door.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-#include "keypad.h"
 #include "occupancy.h"
 #include "rfid.h"
-#include "sdkconfig.h"
+#include "cocis_kconfig.h"
 #include "storage.h"
 #include "task_config.h"
 #include "ui.h"
@@ -198,7 +197,7 @@ void hub_emergency_clear(card_uid_t by)
     }
     s_emergency = false;
     door_hold_all(false);
-    /* Audit who ended the emergency, e.g. "cleared_by_A1B2C3D4". */
+    /* Audit who ended the emergency, e.g. "cleared_by_AABBCCDD". */
     char detail[24];
     snprintf(detail, sizeof(detail), "cleared_by_%08lX", (unsigned long)by);
     hub_alert("BREAK_GLASS", detail);
@@ -207,17 +206,10 @@ void hub_emergency_clear(card_uid_t by)
 bool hub_emergency_active(void) { return s_emergency; }
 
 /* ================= Inputs -> hub inbox (run in input tasks) ================= */
-/* These callbacks run in the keypad / buttons driver tasks, NOT in the hub
- * task. They do no work themselves: they only post a message to the hub
- * inbox, so every decision still happens in the hub task, in order. */
-
-/* Keypad callback: forward the pressed key to the hub task.
- * @param key  key character from the 4x4 keypad */
-static void on_key(char key)
-{
-    bus_msg_t m = { .type = MSG_KEY, .key.key = key };
-    bus_send(NODE_HUB, NODE_HUB, &m, pdMS_TO_TICKS(50));
-}
+/* This callback runs in the buttons driver task, NOT in the hub task. It does
+ * no work itself: it only posts a message to the hub inbox, so every decision
+ * still happens in the hub task, in order. (Card scans arrive the same way,
+ * from the rfid task.) */
 
 /* The break-glass button as a one-button group for the buttons driver
  * (must be static: the driver keeps the pointer). */
@@ -250,7 +242,6 @@ static void ui_status(ui_status_t *st)
     st->emergency = s_emergency;
     st->admin     = auth_is_admin();
     st->inside    = occupancy_count();
-    st->reader    = rfid_reader_side();
     /* Opening hours as "HH:MM-HH:MM" (minutes / 60 = hour, % 60 = minute). */
     snprintf(st->hours, sizeof(st->hours), "%02d:%02d-%02d:%02d",
              cfg.schedule.open_min / 60, cfg.schedule.open_min % 60,
@@ -286,7 +277,6 @@ static void hub_task(void *arg)
             int room = node_to_room(m.src);
             switch (m.type) {
             case MSG_CARD_SCAN:   hub_access_handle_scan(m.scan.uid, m.scan.side); break;
-            case MSG_KEY:         hub_keypad_handle(m.key.key); break;
             case MSG_BREAK_GLASS: handle_break_glass(); break;
             case MSG_ROOM_STATE:  if (room >= 1 && room <= ROOM_COUNT) handle_room_state(room, &m); break;
             case MSG_HEARTBEAT:   if (room >= 1 && room <= ROOM_COUNT) handle_heartbeat(room); break;
@@ -322,7 +312,6 @@ void hub_start(void)
     ui_init(ui_status);
     /* Input devices: their callbacks only post messages to the hub inbox. */
     rfid_init();
-    keypad_init(on_key);
     buttons_add_group(s_break_glass_pin, 1, on_break_glass);
     /* Start the task last, when everything it uses is ready. */
     xTaskCreate(hub_task, "hub", TASK_HUB_STACK, NULL, TASK_HUB_PRIO, NULL);

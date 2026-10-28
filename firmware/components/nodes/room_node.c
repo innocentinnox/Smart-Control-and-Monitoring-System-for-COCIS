@@ -23,7 +23,7 @@
 #include "esp_log.h"
 #include "light_sensor.h"
 #include "room_logic.h"
-#include "sdkconfig.h"
+#include "cocis_kconfig.h"
 #include "task_config.h"
 
 static const char *TAG = "room";

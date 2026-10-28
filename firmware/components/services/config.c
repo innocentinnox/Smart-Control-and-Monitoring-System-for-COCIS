@@ -11,7 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "nvs_store.h"
-#include "sdkconfig.h"
+#include "cocis_kconfig.h"
 #include "storage.h"
 
 #define NVS_KEY "config"            /* NVS key of the config blob */

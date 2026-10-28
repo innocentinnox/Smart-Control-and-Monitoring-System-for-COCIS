@@ -1,5 +1,5 @@
 /* Serial management menu (UART0 REPL built on esp_console).
- * Type "help" for the command list; see docs/REPORT.md for a walkthrough.
+ * Type "help" for the command list; see docs/report.pdf (appendix A) for every command.
  *
  * esp_console is ESP-IDF's command-line framework: it reads a line from the
  * serial port, splits it into words (argc/argv like a C main()), looks up

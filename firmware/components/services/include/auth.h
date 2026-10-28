@@ -5,7 +5,7 @@
  * and adds what the pure logic leaves out: the clock, the user registry
  * (is this card an admin? is the PIN right?) and the audit log.
  *
- * Thread-safe wrapper used by the hub (card taps, keypad) and the CLI
+ * Thread-safe wrapper used by the hub (admin card at a reader) and the CLI
  * (login/logout, privileged commands). Every outcome is logged as an AUTH
  * event, and a PIN lockout also raises an ALERT.
  *
@@ -36,7 +36,7 @@ auth_result_t auth_card(card_uid_t uid);        /* card tapped while waiting    
  * @param pin  typed PIN text (checked against the card from auth_card()).
  * @return AUTH_OK (session started), AUTH_BAD_PIN (retry allowed),
  *         AUTH_LOCKED (3rd failure), AUTH_TIMEOUT, or AUTH_NONE. */
-auth_result_t auth_pin(const char *pin);        /* PIN typed (keypad or CLI)           */
+auth_result_t auth_pin(const char *pin);        /* PIN typed on the console            */
 
 /* End the session (or abandon a login in progress).
  * @return AUTH_LOGOUT if a session was active, else AUTH_NONE. */

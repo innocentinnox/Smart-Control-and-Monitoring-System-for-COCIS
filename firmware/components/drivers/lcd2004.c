@@ -75,7 +75,7 @@ esp_err_t lcd_init(void)
      * with the datasheet's waits (>4.1 ms, >100 us) forces a known 8-bit
      * state, then 0x2 switches to 4-bit. From here on full bytes are sent
      * as two nibbles. */
-    write_nibble(0x03, 0); vTaskDelay(pdMS_TO_TICKS(5));
+    write_nibble(0x03, 0); esp_rom_delay_us(5000);  /* busy-wait: exact at any tick rate */
     write_nibble(0x03, 0); esp_rom_delay_us(150);
     write_nibble(0x03, 0);
     write_nibble(0x02, 0);
@@ -90,8 +90,10 @@ esp_err_t lcd_init(void)
 void lcd_clear(void)
 {
     command(CMD_CLEAR);
-    /* Clear takes ~1.5 ms inside the LCD, much longer than other commands */
-    vTaskDelay(pdMS_TO_TICKS(2));
+    /* Clear takes ~1.5 ms inside the LCD, much longer than other commands.
+     * A short busy-wait, because 2 ms is less than one tick in a default
+     * (100 Hz) ESP-IDF build, where pdMS_TO_TICKS(2) would be 0. */
+    esp_rom_delay_us(2000);
 }
 
 void lcd_print_row(uint8_t row, const char *text)

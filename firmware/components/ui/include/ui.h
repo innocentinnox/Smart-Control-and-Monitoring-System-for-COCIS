@@ -7,11 +7,11 @@
  *
  *   row 0  CoCIS 09:15:02  OPEN      <- always (OPEN / SHUT / LOCK / EMRG)
  *   row 1  Hours 07:00-22:00         <- or a 2-line message for a few seconds
- *   row 2  In:3   Rdr:OUT ADMIN      <- people inside, reader side, admin
+ *   row 2  Inside: 3      ADMIN      <- people in the building, admin session
  *   row 3  R1 100% P-R2   0% -S      <- always (see room_cell() in ui.c)
  *
  * Because ui_message() and ui_feedback() only drop a request into the queue,
- * callers (door, keypad, network tasks) never wait for the slow LCD or for
+ * callers (hub, room nodes, CLI) never wait for the slow LCD or for
  * a beep to finish.
  */
 #pragma once
@@ -27,7 +27,6 @@ typedef struct {
     bool   admin;               /* admin session active          */
     char   hours[16];           /* "07:00-22:00"                 */
     size_t inside;              /* number of people inside       */
-    door_side_t reader;         /* reader-select switch position */
     struct {
         bool    online;         /* room node is still reporting  */
         bool    occupied;       /* people detected in the room   */
@@ -45,7 +44,6 @@ typedef void (*ui_status_fn)(ui_status_t *out);
 typedef enum {
     UI_SOUND_GRANTED,           /* short high beep + LED */
     UI_SOUND_DENIED,            /* three low beeps       */
-    UI_SOUND_KEY,               /* keypad click          */
     UI_SOUND_ALARM,             /* break-glass siren     */
     UI_SOUND_INFO,              /* two-tone notice       */
 } ui_sound_t;

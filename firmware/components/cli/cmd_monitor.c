@@ -17,6 +17,7 @@
 #include "esp_timer.h"
 #include "hub.h"
 #include "occupancy.h"
+#include "rfid.h"
 #include "storage.h"
 #include "users.h"
 
@@ -53,6 +54,8 @@ static int cmd_status(int argc, char **argv)
     printf("Storage     : %s, last seq %lu\n", storage_sd_ok() ? "SD card OK" : "RAM ONLY (no SD)",
            (unsigned long)storage_last_seq());
     printf("Bus         : %lu duplicate frames rejected\n", (unsigned long)bus_dropped_count());
+    printf("RFID readers: entry %s, exit %s\n", rfid_reader_ok(SIDE_IN) ? "OK" : "NOT ANSWERING",
+           rfid_reader_ok(SIDE_OUT) ? "OK" : "NOT ANSWERING");
     printf("Admin       : %s", auth_is_admin() ? "logged in" : "not logged in");
     if (auth_is_admin()) printf(" as %08lX (%lu s left)", (unsigned long)auth_session_uid(),
                                 (unsigned long)auth_session_left_s());

@@ -12,7 +12,7 @@
 #include "clock.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-#include "sdkconfig.h"
+#include "cocis_kconfig.h"
 #include "storage.h"
 #include "users.h"
 
