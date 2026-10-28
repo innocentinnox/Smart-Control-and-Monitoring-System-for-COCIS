@@ -9,16 +9,10 @@
 #define PWM_RES_BITS  LEDC_TIMER_13_BIT
 #define PWM_MAX_DUTY  ((1u << 13) - 1)
 
-/* Call once before any other pwm_* function. */
-void pwm_init(void);
-
 void pwm_timer_setup(ledc_timer_t timer, uint32_t freq_hz);
 void pwm_channel_setup(ledc_channel_t ch, ledc_timer_t timer, int gpio);
 
-/* Thread-safe: may be called from any task or timer callback. */
+/* Safe from any task or timer callback (LEDC guards each write with a spinlock). */
 void pwm_set_duty(ledc_channel_t ch, uint32_t duty);
-
-/* Hardware fade to the duty over fade_ms, returns immediately. */
-void pwm_fade_to(ledc_channel_t ch, uint32_t duty, uint32_t fade_ms);
 
 void pwm_set_freq(ledc_timer_t timer, uint32_t freq_hz);

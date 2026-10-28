@@ -17,7 +17,7 @@ static const char *TAG = "room";
 #define SENSE_PERIOD_MS     200
 #define HEARTBEAT_MS        5000
 #define STATE_REFRESH_MS    60000       /* resend state now and then: energy totals */
-#define FADE_MS             800
+#define RAMP_STEP           25          /* % per sense period: 0->100 in 0.8 s */
 
 typedef struct {
     int            room;
@@ -56,7 +56,7 @@ static void report_state(room_node_t *n, const room_logic_t *r, light_mode_t mod
     bus_msg_t m = {
         .type = MSG_ROOM_STATE,
         .room = {
-            .occupied = r->occupied, .level = r->level, .lux = lux, .mode = mode,
+            .occupied = r->occupied, .daylight = r->daylight, .level = r->level, .lux = lux, .mode = mode,
             .on_wh = (float)r->on_wh, .saved_wh = (float)room_logic_saved_wh(r),
         },
     };
@@ -71,6 +71,7 @@ static void room_task(void *arg)
     light_mode_t mode = LIGHT_AUTO;
     uint32_t now = clock_ms();
     uint32_t next_hb = now, next_refresh = now;
+    uint8_t shown = 0;                                  /* lamp level on the pin, ramps to logic.level */
 
     room_logic_init(&logic, now);
     report_state(n, &logic, mode, 0);                   /* announce ourselves */
@@ -95,8 +96,10 @@ static void room_task(void *arg)
         };
         unsigned changed = room_logic_step(&logic, &CFG, &in);
 
-        if (changed & ROOM_CHANGED_LEVEL) {
-            lamp_fade_to(n->lamp, logic.level, FADE_MS);
+        if (shown != logic.level) {                     /* soft fade, one step per period */
+            int diff = (int)logic.level - shown;
+            shown += diff > RAMP_STEP ? RAMP_STEP : diff < -RAMP_STEP ? -RAMP_STEP : diff;
+            lamp_set(n->lamp, shown);
         }
         if (changed || mode_changed || time_reached_ms(in.now_ms, next_refresh)) {
             report_state(n, &logic, mode, in.lux);

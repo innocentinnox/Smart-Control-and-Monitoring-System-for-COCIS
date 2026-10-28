@@ -34,10 +34,10 @@ void lamp_setup(ledc_channel_t ch, int gpio)
     pwm_channel_setup(ch, PWM_TIMER_LIGHT, gpio);
 }
 
-void lamp_fade_to(ledc_channel_t ch, uint8_t percent, uint32_t fade_ms)
+void lamp_set(ledc_channel_t ch, uint8_t percent)
 {
     if (percent > 100) percent = 100;
-    pwm_fade_to(ch, PWM_MAX_DUTY * percent / 100, fade_ms);
+    pwm_set_duty(ch, PWM_MAX_DUTY * percent / 100);
 }
 
 /* ---------------- Buzzer ---------------- */

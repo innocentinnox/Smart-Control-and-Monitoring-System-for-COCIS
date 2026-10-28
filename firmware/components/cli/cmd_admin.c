@@ -24,7 +24,7 @@ static int cmd_login(int argc, char **argv)
             return 1;
         }
         printf("Tap the ADMIN card (Card 4) at the entrance within 30 s,\n"
-               "then type 'login <PIN>' here (or the PIN + # on the keypad).\n");
+               "then type 'login <PIN>' here (or the 4-digit PIN on the keypad).\n");
         return 0;
     }
     if (auth_state() != AUTH_ST_WAIT_PIN) {

@@ -53,6 +53,7 @@ typedef struct {
 /* What changed in this step, so the caller only reports real changes. */
 #define ROOM_CHANGED_OCCUPANCY  (1u << 0)
 #define ROOM_CHANGED_LEVEL      (1u << 1)
+#define ROOM_CHANGED_DAYLIGHT   (1u << 2)   /* crossed a lux threshold */
 
 void     room_logic_init(room_logic_t *r, uint32_t now_ms);
 unsigned room_logic_step(room_logic_t *r, const room_logic_cfg_t *cfg, const room_inputs_t *in);

@@ -2,12 +2,6 @@
 
 #define MODE LEDC_LOW_SPEED_MODE        /* the only LEDC mode on the ESP32-S3 */
 
-void pwm_init(void)
-{
-    /* Needed for the hardware fades and the thread-safe duty API */
-    ESP_ERROR_CHECK(ledc_fade_func_install(0));
-}
-
 void pwm_timer_setup(ledc_timer_t timer, uint32_t freq_hz)
 {
     ledc_timer_config_t cfg = {
@@ -33,14 +27,12 @@ void pwm_channel_setup(ledc_channel_t ch, ledc_timer_t timer, int gpio)
     ESP_ERROR_CHECK(ledc_channel_config(&cfg));
 }
 
+/* No LEDC fade service on purpose: its interrupt storms in Wokwi (and the
+ * peripheral keeps it pending across soft resets), so lamps ramp in software. */
 void pwm_set_duty(ledc_channel_t ch, uint32_t duty)
 {
-    ledc_set_duty_and_update(MODE, ch, duty, 0);
-}
-
-void pwm_fade_to(ledc_channel_t ch, uint32_t duty, uint32_t fade_ms)
-{
-    ledc_set_fade_time_and_start(MODE, ch, duty, fade_ms, LEDC_FADE_NO_WAIT);
+    ledc_set_duty(MODE, ch, duty);
+    ledc_update_duty(MODE, ch);
 }
 
 void pwm_set_freq(ledc_timer_t timer, uint32_t freq_hz)

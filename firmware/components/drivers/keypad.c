@@ -18,6 +18,7 @@
 #define COLS 4
 #define POLL_MS      10
 #define DEBOUNCE_MS  20
+#define REPEAT_MS    120            /* same key again this soon = a glitch, not a press */
 
 static const gpio_num_t s_rows[ROWS] = { PIN_KEYPAD_R1, PIN_KEYPAD_R2, PIN_KEYPAD_R3, PIN_KEYPAD_R4 };
 static const gpio_num_t s_cols[COLS] = { PIN_KEYPAD_C1, PIN_KEYPAD_C2, PIN_KEYPAD_C3, PIN_KEYPAD_C4 };
@@ -84,17 +85,25 @@ static char scan(void)
 
 static void keypad_task(void *arg)
 {
+    char       last_key = 0;
+    TickType_t last_release = 0;
+
     while (1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         cols_irq_enable(false);
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
 
         char key = scan();
-        if (key && s_on_key) {
+        bool repeat = key == last_key && xTaskGetTickCount() - last_release < pdMS_TO_TICKS(REPEAT_MS);
+        if (key && !repeat && s_on_key) {
             s_on_key(key);
         }
         while (any_col_low()) {                     /* one press = one event */
             vTaskDelay(pdMS_TO_TICKS(POLL_MS));
+        }
+        if (key) {
+            last_key     = key;
+            last_release = xTaskGetTickCount();
         }
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
         ulTaskNotifyTake(pdTRUE, 0);                /* drop bounce notifications */

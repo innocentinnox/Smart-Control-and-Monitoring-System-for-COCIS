@@ -22,9 +22,11 @@ typedef struct {
     bool   admin;               /* admin session active          */
     char   hours[16];           /* "07:00-22:00"                 */
     size_t inside;
+    door_side_t reader;         /* reader-select switch position */
     struct {
         bool    online;
         bool    occupied;
+        bool    daylight;
         uint8_t level;
     } rooms[ROOM_COUNT];
 } ui_status_t;

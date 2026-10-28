@@ -19,6 +19,7 @@
 #include "bus.h"
 #include "cli.h"
 #include "clock.h"
+#include "cocis_crypto.h"
 #include "config.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -27,7 +28,6 @@
 #include "light_sensor.h"
 #include "nvs_store.h"
 #include "occupancy.h"
-#include "pwm.h"
 #include "room_node.h"
 #include "storage.h"
 #include "auth.h"
@@ -70,6 +70,9 @@ void app_main(void)
 
     /* 2. Event log (SD gatekeeper) - everything after this can log */
     ESP_ERROR_CHECK(storage_init());
+    if (!cocis_crypto_selftest()) {
+        cocis_log(LOG_ALERT, "code=CRYPTO_FAIL detail=sha256_selftest");
+    }
 
     /* 3. Shared state */
     ESP_ERROR_CHECK(users_init());
@@ -79,7 +82,6 @@ void app_main(void)
 
     /* 4. Communication and actuators */
     bus_init();
-    pwm_init();
     ESP_ERROR_CHECK(light_sensor_init());
 
     /* 5. The three terminals */

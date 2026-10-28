@@ -55,6 +55,7 @@ unsigned room_logic_step(room_logic_t *r, const room_logic_cfg_t *cfg, const roo
 {
     unsigned changed = 0;
     bool was_occupied = r->occupied;
+    bool was_daylight = r->daylight;
     uint8_t old_level = r->level;
 
     update_energy(r, cfg, in);
@@ -72,6 +73,9 @@ unsigned room_logic_step(room_logic_t *r, const room_logic_cfg_t *cfg, const roo
     }
     if (r->level != old_level) {
         changed |= ROOM_CHANGED_LEVEL;
+    }
+    if (r->daylight != was_daylight) {
+        changed |= ROOM_CHANGED_DAYLIGHT;
     }
     return changed;
 }

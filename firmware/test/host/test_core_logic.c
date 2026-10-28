@@ -134,6 +134,13 @@ static void test_room(void)
     room_step(&r, true, 300, 63000);
     CHECK(r.level == 100);                       /* between thresholds: keep "dark" */
 
+    /* Crossing a lux threshold is reported even when the lamp level does not change */
+    room_logic_t dl;
+    room_logic_init(&dl, 0);
+    CHECK(room_step(&dl, false, 50, 100) == 0);                     /* vacant, dark: nothing */
+    CHECK(room_step(&dl, false, 800, 200) == ROOM_CHANGED_DAYLIGHT); /* slider up: reported */
+    CHECK(dl.daylight && dl.level == 0);
+
     /* Manual override */
     room_inputs_t off = { .motion = true, .lux = 50, .mode = LIGHT_OFF, .in_hours = true, .now_ms = 64000 };
     room_logic_step(&r, &ROOM_CFG, &off);

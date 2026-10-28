@@ -51,16 +51,26 @@ static void draw_row(int row, const char *text)
     }
 }
 
+/* Exactly 10 characters per room, two rooms per row:
+ *   "R1 100% PS"   lamp level, P = people detected, S = sunlight enough
+ *   "R1 offline"   node stopped reporting */
+#define ROOM_CELL_W 10
+
 static void room_cell(char *out, size_t len, int room, const ui_status_t *st)
 {
     if (!st->rooms[room].online) {
         snprintf(out, len, "R%d offline", room + 1);
     } else {
-        snprintf(out, len, "R%d%4u%% %s", room + 1, st->rooms[room].level,
-                 st->rooms[room].occupied ? "occ" : "---");
+        snprintf(out, len, "R%d %3u%% %c%c", room + 1, st->rooms[room].level,
+                 st->rooms[room].occupied ? 'P' : '-', st->rooms[room].daylight ? 'S' : '-');
     }
 }
 
+/* Every row is formatted to exactly LCD_COLS (20) characters:
+ *   "CoCIS 09:15:45  OPEN"
+ *   "Hours 07:00-22:00"
+ *   "In:3   Rdr:OUT ADMIN"
+ *   "R1 100% P-R2   0% -S" */
 static void redraw(void)
 {
     ui_status_t st = { 0 };
@@ -69,13 +79,14 @@ static void redraw(void)
     char row[48], clock_txt[12], cells[2][16];
     clock_format(clock_txt, sizeof(clock_txt), "%H:%M:%S");
     const char *state = st.emergency ? "EMRG" : st.lockdown ? "LOCK" : st.open ? "OPEN" : "SHUT";
-    snprintf(row, sizeof(row), "CoCIS %s   %s", clock_txt, state);
+    snprintf(row, sizeof(row), "CoCIS %s  %s", clock_txt, state);
     draw_row(0, row);
 
     if (time_reached_ms(clock_ms(), s_msg_until)) {
         snprintf(row, sizeof(row), "Hours %s", st.hours);
         draw_row(1, row);
-        snprintf(row, sizeof(row), "Inside: %-3u %8s", (unsigned)st.inside, st.admin ? "ADMIN" : "");
+        snprintf(row, sizeof(row), "In:%-3u Rdr:%-3s %s", (unsigned)st.inside,
+                 side_str(st.reader), st.admin ? "ADMIN" : "");
         draw_row(2, row);
     } else {
         draw_row(1, s_msg[0]);
@@ -84,7 +95,7 @@ static void redraw(void)
 
     room_cell(cells[0], sizeof(cells[0]), 0, &st);
     room_cell(cells[1], sizeof(cells[1]), 1, &st);
-    snprintf(row, sizeof(row), "%-10s%s", cells[0], cells[1]);
+    snprintf(row, sizeof(row), "%-*s%s", ROOM_CELL_W, cells[0], cells[1]);
     draw_row(3, row);
 }
 

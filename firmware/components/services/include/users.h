@@ -12,7 +12,7 @@
 
 #define USERS_MAX      32
 #define PIN_SALT_LEN   8
-#define PIN_MAX_LEN    8
+#define PIN_LEN        4            /* PINs are exactly 4 digits */
 #define DEMO_CARD_COUNT 4
 
 typedef struct {
@@ -32,7 +32,7 @@ bool   users_find(card_uid_t uid, user_t *out);
 size_t users_snapshot(user_t *out, size_t max);
 
 /* by = admin card making the change (for the audit log).
- * name: 1..15 chars, letters/digits/_ only. pin: NULL or 4..8 digits. */
+ * name: 1..15 chars, letters/digits/_ only. pin: NULL or exactly PIN_LEN digits. */
 esp_err_t users_add(card_uid_t uid, const char *name, role_t role, const char *pin, card_uid_t by);
 esp_err_t users_remove(card_uid_t uid, card_uid_t by);
 esp_err_t users_set_enabled(card_uid_t uid, bool enabled, card_uid_t by);

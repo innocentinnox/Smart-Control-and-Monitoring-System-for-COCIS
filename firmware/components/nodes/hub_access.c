@@ -72,7 +72,7 @@ void hub_access_handle_scan(card_uid_t uid, door_side_t side)
     if (auth_state() == AUTH_ST_WAIT_CARD) {
         hub_keypad_reset();
         auth_result_t r = auth_card(uid);
-        ui_message("Admin login", r == AUTH_CARD_OK ? "Enter PIN then #" : "Not an admin card",
+        ui_message("Admin login", r == AUTH_CARD_OK ? "Enter 4-digit PIN" : "Not an admin card",
                    r == AUTH_CARD_OK ? 30000 : MSG_MS);
         ui_feedback(r == AUTH_CARD_OK ? UI_SOUND_INFO : UI_SOUND_DENIED);
         return;

@@ -32,6 +32,7 @@ typedef struct {
         struct { char key; } key;
         struct {
             bool         occupied;
+            bool         daylight;      /* bright enough without the lamp */
             uint8_t      level;         /* lamp %          */
             uint16_t     lux;
             light_mode_t mode;

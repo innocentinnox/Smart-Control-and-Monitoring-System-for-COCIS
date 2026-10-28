@@ -10,7 +10,7 @@ void servo_set_angle(ledc_channel_t ch, int degrees);
 
 /* ---- Dimmable lamp (LED driven by PWM) ---- */
 void lamp_setup(ledc_channel_t ch, int gpio);
-void lamp_fade_to(ledc_channel_t ch, uint8_t percent, uint32_t fade_ms);
+void lamp_set(ledc_channel_t ch, uint8_t percent);    /* instant; callers ramp if they want a fade */
 
 /* ---- Passive buzzer ---- */
 void buzzer_setup(int gpio);

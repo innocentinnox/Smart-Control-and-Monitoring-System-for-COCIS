@@ -15,10 +15,14 @@ bool rfid_inject(card_uid_t uid, door_side_t side)
     return bus_send(NODE_HUB, NODE_HUB, &m, pdMS_TO_TICKS(50));
 }
 
+door_side_t rfid_reader_side(void)
+{
+    return gpio_get_level(PIN_READER_SELECT) ? SIDE_OUT : SIDE_IN;
+}
+
 static void on_card_button(size_t index)
 {
-    door_side_t side = gpio_get_level(PIN_READER_SELECT) ? SIDE_OUT : SIDE_IN;
-    rfid_inject(users_demo_card((int)index), side);
+    rfid_inject(users_demo_card((int)index), rfid_reader_side());
 }
 
 void rfid_init(void)

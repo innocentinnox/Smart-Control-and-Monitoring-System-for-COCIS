@@ -12,6 +12,7 @@
 typedef struct {
     bool         online;
     bool         occupied;
+    bool         daylight;
     uint8_t      level;
     uint16_t     lux;
     light_mode_t mode;

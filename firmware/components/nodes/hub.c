@@ -55,10 +55,11 @@ static void handle_room_state(int room, const bus_msg_t *m)
     LOCK();
     room_status_t *r = &s_rooms[room - 1];
     bool was_online   = r->online;
-    bool occ_changed  = r->occupied != m->room.occupied || !was_online;
+    bool occ_changed  = r->occupied != m->room.occupied || r->daylight != m->room.daylight ||
+                        !was_online;
     bool lvl_changed  = r->level != m->room.level || r->mode != m->room.mode || !was_online;
     *r = (room_status_t){
-        .online = true, .occupied = m->room.occupied, .level = m->room.level,
+        .online = true, .occupied = m->room.occupied, .daylight = m->room.daylight, .level = m->room.level,
         .lux = m->room.lux, .mode = m->room.mode, .on_wh = m->room.on_wh,
         .saved_wh = m->room.saved_wh, .last_heard_ms = clock_ms(),
     };
@@ -70,7 +71,8 @@ static void handle_room_state(int room, const bus_msg_t *m)
         hub_alert("NODE_ONLINE", detail);
     }
     if (occ_changed) {
-        cocis_log(LOG_ROOM, "room=%d occupied=%d", room, m->room.occupied);
+        cocis_log(LOG_ROOM, "room=%d occupied=%d daylight=%d lux=%u", room, m->room.occupied,
+                  m->room.daylight, m->room.lux);
     }
     if (lvl_changed) {
         cocis_log(LOG_LIGHT, "room=%d level=%u mode=%s lux=%u", room, m->room.level,
@@ -175,6 +177,7 @@ static void ui_status(ui_status_t *st)
     st->emergency = s_emergency;
     st->admin     = auth_is_admin();
     st->inside    = occupancy_count();
+    st->reader    = rfid_reader_side();
     snprintf(st->hours, sizeof(st->hours), "%02d:%02d-%02d:%02d",
              cfg.schedule.open_min / 60, cfg.schedule.open_min % 60,
              cfg.schedule.close_min / 60, cfg.schedule.close_min % 60);
@@ -183,6 +186,7 @@ static void ui_status(ui_status_t *st)
         hub_room_status(i + 1, &r);
         st->rooms[i].online   = r.online;
         st->rooms[i].occupied = r.occupied;
+        st->rooms[i].daylight = r.daylight;
         st->rooms[i].level    = r.level;
     }
 }

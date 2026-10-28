@@ -26,8 +26,13 @@ static const struct {
     { 0xD4E5F6A7, "Admin", ROLE_ADMIN,    "1234" },
 };
 
-/* The whole registry is one blob, saved atomically after every change. */
+/* The whole registry is one blob, saved atomically after every change.
+ * Bump REGISTRY_VERSION whenever the stored format or the demo seed changes:
+ * an older blob is then discarded and the demo cards are re-seeded. */
+#define REGISTRY_VERSION 2
+
 typedef struct {
+    uint32_t version;
     uint32_t count;
     user_t   users[USERS_MAX];
 } registry_t;
@@ -84,8 +89,7 @@ static bool name_valid(const char *s)
 
 static bool pin_valid(const char *s)
 {
-    size_t n = strlen(s);
-    if (n < 4 || n > PIN_MAX_LEN) {
+    if (strlen(s) != PIN_LEN) {
         return false;
     }
     for (; *s; s++) {
@@ -106,12 +110,14 @@ static void log_user(const char *action, const user_t *u, card_uid_t by)
 esp_err_t users_init(void)
 {
     s_lock = xSemaphoreCreateMutex();
-    if (nvs_store_load(NVS_KEY, &s_reg, sizeof(s_reg)) == ESP_OK && s_reg.count <= USERS_MAX) {
+    if (nvs_store_load(NVS_KEY, &s_reg, sizeof(s_reg)) == ESP_OK &&
+        s_reg.version == REGISTRY_VERSION && s_reg.count <= USERS_MAX) {
         ESP_LOGI(TAG, "%lu users loaded", (unsigned long)s_reg.count);
         return ESP_OK;
     }
 
     memset(&s_reg, 0, sizeof(s_reg));
+    s_reg.version = REGISTRY_VERSION;
     for (int i = 0; i < DEMO_CARD_COUNT; i++) {
         user_t *u = &s_reg.users[s_reg.count++];
         u->uid = DEMO_CARDS[i].uid;

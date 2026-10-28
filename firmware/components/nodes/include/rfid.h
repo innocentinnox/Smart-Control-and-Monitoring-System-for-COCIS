@@ -11,3 +11,6 @@
 
 void rfid_init(void);
 bool rfid_inject(card_uid_t uid, door_side_t side);
+
+/* Which reader the slide switch currently selects. */
+door_side_t rfid_reader_side(void);
