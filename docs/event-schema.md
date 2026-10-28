@@ -12,20 +12,26 @@ The C mirror of this document is
 
 | Thing | Type | Notes |
 |---|---|---|
-| Card UID | `uint32_t`, printed as 8 upper-case hex digits | e.g. `A1B2C3D4` |
+| Card UID | `uint32_t`, printed as 8 upper-case hex digits | e.g. `01020304`. A 4-byte card UID is read first byte first; a 7-byte UID keeps its last 4 bytes. |
 | Node id | `0` = `HUB` (entrance), `1` = `ROOM1`, `2` = `ROOM2` | |
 | Role | `STUDENT`, `STAFF`, `SECURITY`, `ADMIN` | `SECURITY`/`ADMIN` are *privileged* (24/7 access) |
 | Door side | `IN` (entry reader/door), `OUT` (exit reader/door) | |
 
 ### Demo cards (seeded on first boot)
 
-| Button in Wokwi | UID | Name | Role | PIN |
+The demo cards are the preset cards of the Wokwi MFRC522 reader. Pick a card in the
+reader's control panel (or with its keyboard shortcut), then **Tap** it (presents it for 0.5 s) or **Hold** it.
+
+| Wokwi card (key) | UID | Name | Role | PIN |
 |---|---|---|---|---|
-| Card 1 (blue) | `A1B2C3D4` | `Alice` | STUDENT | – |
-| Card 2 (green) | `B2C3D4E5` | `Bob` | STAFF | – |
-| Card 3 (yellow) | `C3D4E5F6` | `Carol` | SECURITY | – |
-| Card 4 (red) | `D4E5F6A7` | `Admin` | ADMIN | `1234` (PINs are exactly 4 digits) |
-| CLI only: `tap DEADBEEF in` | `DEADBEEF` | (unregistered) | – | – |
+| Blue (`b`) | `01020304` | `Alice` | STUDENT | – |
+| Green (`g`) | `11223344` | `Bob` | STAFF | – |
+| Yellow (`y`) | `55667788` | `Carol` | SECURITY | – |
+| Red (`r`) | `AABBCCDD` | `Admin` | ADMIN | `1234` (PINs are exactly 4 digits) |
+| Key fob (`k`) | `C0FFEE99` | (unregistered) | – | – |
+| NFC tag (`n`), 7-byte UID `04:11:22:33:44:55:66` | `33445566` | (unregistered) | – | – |
+
+Any UID can also be scanned from the CLI: `tap <UID> in|out`.
 
 ---
 
@@ -54,7 +60,7 @@ Every event has a per-device, strictly increasing **`seq`**, a local timestamp *
 - `AUTH.result`: `CARD_OK`, `OK`, `BAD_PIN`, `LOCKED`, `NOT_ADMIN`, `TIMEOUT`, `LOGOUT`
 - `USER.action`: `ADD`, `DEL`, `ENABLE`, `DISABLE`
 - `ALERT.code`: `NODE_OFFLINE`, `NODE_ONLINE`, `BREAK_GLASS`, `AFTER_HOURS_EXIT`,
-  `SD_FAIL`, `PIN_LOCKOUT`, `CRYPTO_FAIL`
+  `SD_FAIL`, `PIN_LOCKOUT`, `CRYPTO_FAIL`, `RFID_FAIL` (a reader is not answering; `detail` = `IN` or `OUT`)
 
 ### 2.1 SD card line format (tamper-evident)
 
@@ -62,7 +68,7 @@ One event per line in `/sdcard/LOGS/YYYYMMDD.LOG` (one file per day):
 
 ```
 <seq>|<ts>|<type>|<k=v k=v ...>|<hash>
-000042|2026-10-27T09:15:02|ACCESS|uid=A1B2C3D4 name=Alice role=STUDENT side=IN ok=1 reason=OK|9f2c...e1
+000042|2026-10-27T09:15:02|ACCESS|uid=01020304 name=Alice role=STUDENT side=IN ok=1 reason=OK|9f2c...e1
 ```
 
 - `seq` is zero-padded to 6 digits. Field values never contain spaces or `|`.
@@ -83,7 +89,7 @@ X-Signature: <hex HMAC-SHA256(key=device secret, msg = timestamp + "." + raw bod
 { "deviceId": "hub-01",
   "events": [
     { "seq": 42, "ts": "2026-10-27T09:15:02", "type": "ACCESS",
-      "data": { "uid": "A1B2C3D4", "name": "Alice", "role": "STUDENT",
+      "data": { "uid": "01020304", "name": "Alice", "role": "STUDENT",
                 "side": "IN", "ok": 1, "reason": "OK" },
       "hash": "9f2c...e1" }
   ] }
@@ -103,8 +109,7 @@ single-board Wokwi build, and ESP-NOW frames on separate boards (same struct, pa
 
 | `type` | Direction | Payload |
 |---|---|---|
-| `MSG_CARD_SCAN` | reader → HUB | `uid`, `side` |
-| `MSG_KEY` | keypad → HUB | `key` |
+| `MSG_CARD_SCAN` | RFID reader (entry or exit) → HUB | `uid`, `side` |
 | `MSG_BREAK_GLASS` | button → HUB | – |
 | `MSG_ROOM_STATE` | ROOMn → HUB | `occupied`, `daylight`, `level`, `lux`, `mode`, `on_wh`, `saved_wh` |
 | `MSG_HEARTBEAT` | ROOMn → HUB | `uptime_s` |
@@ -117,7 +122,7 @@ newer than the last one it saw from that sender (duplicate or replay protection)
 
 ## 4. Pin map (ESP32-S3-DevKitC-1, Wokwi)
 
-Pins follow the board's physical header order, so the diagram's signal wires never cross.
+Pins follow the board's physical header order, so the diagram stays tidy (only the readers' shared bus lines cross).
 [`board_pins.h`](../firmware/components/common/include/board_pins.h) is the source of truth;
 `firmware/tools/gen_diagram.py` generates `diagram.json` from it.
 
@@ -125,13 +130,13 @@ Pins follow the board's physical header order, so the diagram's signal wires nev
 |---|---|---|---|
 | left | Room 1: LDR / PIR / light | 4 (ADC1_CH3) / 5 / 6 | LDRs need ADC1 |
 | left | Room 2: LDR / PIR / light | 7 (ADC1_CH6) / 15 / 16 | |
-| left | Card buttons 1–4 | 17, 18, 8, 9 | pull-up, IRQ |
 | left | SD card MISO / SCK / MOSI / CS | 10 / 11 / 12 / 13 | SPI2 via GPIO matrix |
 | left | Buzzer | 14 | LEDC |
-| right | Keypad rows R1–R4 | 1, 2, 42, 41 | open-drain |
-| right | Keypad cols C1–C4 | 40, 39, 38, 37 | pull-up + IRQ |
+| right | Entry RFID reader SDA (chip select) | 1 | MFRC522, SPI3 |
+| right | RFID SCK / MOSI / MISO (both readers) | 2 / 42 / 41 | SPI3, 4 MHz |
+| right | RFID RST (both readers) | 40 | active low |
+| right | Exit RFID reader SDA (chip select) | 39 | |
 | right | I2C SDA / SCL (LCD2004 @0x27, DS1307 @0x68) | 36 / 35 | shared bus |
 | right | Entry door servo / Exit door servo | 48 / 47 | LEDC 50 Hz |
-| right | Break-glass button | 21 | pull-up, IRQ |
+| right | Break-glass button (Wokwi key `e`) | 21 | pull-up, IRQ |
 | right | "Access granted" green LED | 20 | |
-| right | Reader select switch (IN/OUT) | 19 | low (left) = IN reader |
