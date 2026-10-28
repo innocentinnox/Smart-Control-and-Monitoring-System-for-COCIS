@@ -1,0 +1,52 @@
+# Wokwi CLI scenario: card scans at the two MFRC522 readers and the admin login.
+#   wokwi-cli firmware --scenario test/wokwi/access.test.yaml --timeout 60000
+# Cards are the reader's presets: 0 Blue (Alice), 1 Green (Bob), 2 Yellow (Carol),
+# 3 Red (Admin), 5 Key fob (unregistered).
+name: Entrance access with RFID readers
+version: 1
+author: CoCIS Group 28
+
+steps:
+  - wait-serial: 'OUT reader ready'
+  - wait-serial: 'BOOT|reason='
+  - delay: 500ms
+
+  # Alice enters at the entry reader
+  - set-control: { part-id: rfid_in, control: card, value: 0 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'uid=01020304 name=Alice role=STUDENT side=IN ok=1 reason=OK'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 2000ms
+
+  # Alice again at the entry reader: anti-passback
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'uid=01020304 name=Alice role=STUDENT side=IN ok=0 reason=ANTI_PASSBACK'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 2000ms
+
+  # Alice leaves at the exit reader
+  - set-control: { part-id: rfid_out, control: card, value: 0 }
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 1 }
+  - wait-serial: 'uid=01020304 name=Alice role=STUDENT side=OUT ok=1 reason=OK'
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 0 }
+  - delay: 1000ms
+
+  # Unregistered key fob
+  - set-control: { part-id: rfid_in, control: card, value: 5 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'uid=C0FFEE99 name=unknown role=NONE side=IN ok=0 reason=UNKNOWN_CARD'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 1000ms
+
+  # Two-factor admin login: console, Red card at a reader, PIN
+  - write-serial: "login\r\n"
+  - wait-serial: 'Tap the ADMIN card'
+  - set-control: { part-id: rfid_out, control: card, value: 3 }
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 1 }
+  - wait-serial: 'uid=AABBCCDD result=CARD_OK'
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 0 }
+  - write-serial: "login 1234\r\n"
+  - wait-serial: 'Logged in: admin session started.'
+
+  - write-serial: "status\r\n"
+  - wait-serial: 'RFID readers: entry OK, exit OK'

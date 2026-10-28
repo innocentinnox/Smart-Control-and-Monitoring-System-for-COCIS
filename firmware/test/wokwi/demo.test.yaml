@@ -1,0 +1,67 @@
+# Wokwi CLI scenario: the management console walk-through used in the report.
+#   wokwi-cli firmware --scenario test/wokwi/demo.test.yaml --timeout 90000 \
+#             --serial-log-file demo.log
+# Three people enter, the light sensor reports daylight, an admin logs in with
+# card + PIN and changes the schedule, then status / log tail / log verify.
+name: Management console walk-through
+version: 1
+author: CoCIS Group 28
+
+steps:
+  - wait-serial: 'OUT reader ready'
+  - wait-serial: 'BOOT|reason='
+  - delay: 500ms
+
+  # Alice (Blue), Bob (Green) and Carol (Yellow) enter at the entry reader
+  - set-control: { part-id: rfid_in, control: card, value: 0 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Alice role=STUDENT side=IN ok=1'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 1000ms
+  - set-control: { part-id: rfid_in, control: card, value: 1 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Bob role=STAFF side=IN ok=1'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 1000ms
+  - set-control: { part-id: rfid_in, control: card, value: 2 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Carol role=SECURITY side=IN ok=1'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 500ms
+
+  - write-serial: "who\r\n"
+  - wait-serial: 'people inside the building'
+  - delay: 500ms
+
+  # Sunlight in room 1
+  - set-control: { part-id: room1_ldr, control: lux, value: 650 }
+  - wait-serial: 'ROOM|room=1 occupied=0 daylight=1'
+  - write-serial: "rooms\r\n"
+  - wait-serial: 'Saved Wh'
+  - delay: 500ms
+
+  # Configuration needs a session: refused, then card + PIN, then accepted
+  - write-serial: "schedule set 07:00 18:00 weekdays\r\n"
+  - wait-serial: 'Admin session required'
+  - write-serial: "login\r\n"
+  - wait-serial: 'Tap the ADMIN card'
+  - set-control: { part-id: rfid_out, control: card, value: 3 }
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 1 }
+  - wait-serial: 'result=CARD_OK'
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 0 }
+  - write-serial: "login 1234\r\n"
+  - wait-serial: 'Logged in: admin session started.'
+  - write-serial: "schedule set 07:00 18:00 weekdays\r\n"
+  - wait-serial: 'Schedule updated.'
+  - delay: 300ms
+  - write-serial: "schedule set 07:00 22:00 mon-sat\r\n"
+  - wait-serial: 'Schedule updated.'
+  - delay: 300ms
+
+  - write-serial: "status\r\n"
+  - wait-serial: 'RFID readers: entry OK, exit OK'
+  - delay: 500ms
+  - write-serial: "log tail 8\r\n"
+  - delay: 1000ms
+  - write-serial: "log verify\r\n"
+  - wait-serial: 'hash chain intact'

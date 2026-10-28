@@ -1,0 +1,82 @@
+# Wokwi CLI scenario: after-hours rules, node supervision, lockdown and break-glass.
+#   wokwi-cli firmware --scenario test/wokwi/rules.test.yaml --timeout 120000
+name: After hours, escort, offline node, lockdown, break-glass
+version: 1
+author: CoCIS Group 28
+
+steps:
+  - wait-serial: 'OUT reader ready'
+  - wait-serial: 'BOOT|reason='
+  - delay: 500ms
+
+  # Bob (Green) and Carol (Yellow) are inside while the building is open
+  - set-control: { part-id: rfid_in, control: card, value: 1 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Bob role=STAFF side=IN ok=1'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 1000ms
+  - set-control: { part-id: rfid_in, control: card, value: 2 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Carol role=SECURITY side=IN ok=1'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - delay: 500ms
+
+  # Admin closes the building (a window that already ended today)
+  - write-serial: "login\r\n"
+  - wait-serial: 'Tap the ADMIN card'
+  - set-control: { part-id: rfid_in, control: card, value: 3 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'result=CARD_OK'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - write-serial: "login 1234\r\n"
+  - wait-serial: 'admin session started'
+  - write-serial: "schedule set 00:00 00:01 all\r\n"
+  - wait-serial: 'key=schedule value=00:00-00:01'
+  - delay: 500ms
+
+  # After hours: Bob may not leave alone; security is alerted
+  - set-control: { part-id: rfid_out, control: card, value: 1 }
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Bob role=STAFF side=OUT ok=0 reason=OUTSIDE_HOURS'
+  - wait-serial: 'code=AFTER_HOURS_EXIT'
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 0 }
+  - delay: 2000ms
+
+  # Carol (security) leaves: escort window opens, then Bob may leave
+  - set-control: { part-id: rfid_out, control: card, value: 2 }
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Carol role=SECURITY side=OUT ok=1 reason=OK_PRIVILEGED'
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 0 }
+  - delay: 1000ms
+  - set-control: { part-id: rfid_out, control: card, value: 1 }
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Bob role=STAFF side=OUT ok=1 reason=OK_ESCORT'
+  - set-control: { part-id: rfid_out, control: tagPresent, value: 0 }
+
+  # Reopen, then lockdown: a student is refused, security passes
+  - write-serial: "schedule set 07:00 22:00 mon-sat\r\n"
+  - wait-serial: 'key=schedule value=07:00-22:00'
+  - write-serial: "lockdown on\r\n"
+  - wait-serial: 'Lockdown on.'
+  - set-control: { part-id: rfid_in, control: card, value: 0 }
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 1 }
+  - wait-serial: 'name=Alice role=STUDENT side=IN ok=0 reason=LOCKDOWN'
+  - set-control: { part-id: rfid_in, control: tagPresent, value: 0 }
+  - write-serial: "lockdown off\r\n"
+  - wait-serial: 'Lockdown off.'
+
+  # A room terminal goes silent: offline after 15 s, online again
+  - write-serial: "node 2 offline\r\n"
+  - wait-serial: 'code=NODE_OFFLINE detail=ROOM2'
+  - write-serial: "node 2 online\r\n"
+  - wait-serial: 'code=NODE_ONLINE detail=ROOM2'
+
+  # Break-glass: both doors held open until an admin clears it
+  - set-control: { part-id: break_glass, control: pressed, value: 1 }
+  - wait-serial: 'code=BREAK_GLASS'
+  - set-control: { part-id: break_glass, control: pressed, value: 0 }
+  - write-serial: "emergency clear\r\n"
+  - wait-serial: 'cleared_by_AABBCCDD'
+
+  - write-serial: "log verify\r\n"
+  - wait-serial: 'hash chain intact'
