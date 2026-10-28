@@ -16,24 +16,24 @@ const day = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
 const at = (hms) => `${day}T${hms}`;
 
 const sample = [
-  ["07:58:10", "BOOT", { reason: "POWERON" }],
-  ["08:02:11", "ACCESS", { uid: "A1B2C3D4", name: "Alice", role: "STUDENT", side: "IN", ok: 1, reason: "OK" }],
-  ["08:02:14", "ROOM", { room: 1, occupied: 1 }],
-  ["08:02:15", "LIGHT", { room: 1, level: 70, mode: "AUTO" }],
-  ["08:05:40", "ACCESS", { uid: "B2C3D4E5", name: "Bob", role: "STAFF", side: "IN", ok: 1, reason: "OK" }],
-  ["08:07:03", "ACCESS", { uid: "DEADBEEF", name: "?", role: "-", side: "IN", ok: 0, reason: "UNKNOWN_CARD" }],
-  ["08:09:30", "ACCESS", { uid: "B2C3D4E5", name: "Bob", role: "STAFF", side: "IN", ok: 0, reason: "ANTI_PASSBACK" }],
+  ["07:58:10", "BOOT", { reason: "POWER_ON" }],
+  ["08:02:11", "ACCESS", { uid: "01020304", name: "Alice", role: "STUDENT", side: "IN", ok: 1, reason: "OK" }],
+  ["08:02:14", "ROOM", { room: 1, occupied: 1, daylight: 0, lux: 90 }],
+  ["08:02:15", "LIGHT", { room: 1, level: 100, mode: "AUTO", lux: 90 }],
+  ["08:05:40", "ACCESS", { uid: "11223344", name: "Bob", role: "STAFF", side: "IN", ok: 1, reason: "OK" }],
+  ["08:07:03", "ACCESS", { uid: "C0FFEE99", name: "unknown", role: "NONE", side: "IN", ok: 0, reason: "UNKNOWN_CARD" }],
+  ["08:09:30", "ACCESS", { uid: "11223344", name: "Bob", role: "STAFF", side: "IN", ok: 0, reason: "ANTI_PASSBACK" }],
   ["08:10:00", "ENERGY", { room: 1, on_wh: 12.4, saved_wh: 5.1 }],
   ["08:10:00", "ENERGY", { room: 2, on_wh: 3.2, saved_wh: 9.8 }],
-  ["08:12:47", "ACCESS", { uid: "C3D4E5F6", name: "Carol", role: "SECURITY", side: "IN", ok: 1, reason: "OK_PRIVILEGED" }],
-  ["08:13:05", "ROOM", { room: 2, occupied: 1 }],
-  ["08:13:06", "LIGHT", { room: 2, level: 45, mode: "AUTO" }],
-  ["08:20:19", "ACCESS", { uid: "A1B2C3D4", name: "Alice", role: "STUDENT", side: "OUT", ok: 1, reason: "OK" }],
-  ["08:20:30", "ROOM", { room: 1, occupied: 0 }],
-  ["08:20:31", "LIGHT", { room: 1, level: 0, mode: "AUTO" }],
+  ["08:12:47", "ACCESS", { uid: "55667788", name: "Carol", role: "SECURITY", side: "IN", ok: 1, reason: "OK_PRIVILEGED" }],
+  ["08:13:05", "ROOM", { room: 2, occupied: 1, daylight: 0, lux: 120 }],
+  ["08:13:06", "LIGHT", { room: 2, level: 100, mode: "AUTO", lux: 120 }],
+  ["08:20:19", "ACCESS", { uid: "01020304", name: "Alice", role: "STUDENT", side: "OUT", ok: 1, reason: "OK" }],
+  ["08:20:30", "ROOM", { room: 1, occupied: 0, daylight: 0, lux: 90 }],
+  ["08:20:31", "LIGHT", { room: 1, level: 0, mode: "AUTO", lux: 90 }],
   ["08:25:00", "ALERT", { code: "NODE_OFFLINE", detail: "ROOM2" }],
   ["08:25:42", "ALERT", { code: "NODE_ONLINE", detail: "ROOM2" }],
-  ["08:30:00", "ACCESS", { uid: "D4E5F6A7", name: "Admin", role: "ADMIN", side: "IN", ok: 0, reason: "LOCKDOWN" }],
+  ["08:30:00", "ACCESS", { uid: "AABBCCDD", name: "Admin", role: "ADMIN", side: "IN", ok: 1, reason: "OK" }],
 ];
 
 // Same hash chain as the SD log (event-schema 2.1), so the cloud copy is auditable too.

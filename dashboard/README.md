@@ -74,7 +74,7 @@ X-Signature: <hex HMAC-SHA256(key = device secret, msg = timestamp + "." + raw b
 
 { "deviceId": "hub-01",
   "events": [ { "seq": 42, "ts": "2026-10-27T09:15:02", "type": "ACCESS",
-                "data": { "uid": "A1B2C3D4", "name": "Alice", "role": "STUDENT",
+                "data": { "uid": "01020304", "name": "Alice", "role": "STUDENT",
                           "side": "IN", "ok": 1, "reason": "OK" },
                 "hash": "9f2c...e1" } ] }
 ```
