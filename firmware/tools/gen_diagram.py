@@ -34,16 +34,15 @@ GEOM = {
                                 {"CD": (76.734, 9.374), "DO": (76.734, 18.862), "GND": (76.734, 28.463),
                                  "SCK": (76.734, 38.178), "VCC": (76.734, 47.628), "DI": (76.734, 57.456),
                                  "CS": (76.734, 66.906)}),
-    "wokwi-membrane-keypad":   (70.336 * MM, 91 * MM,
-                                {"R1": (100, 338), "R2": (110, 338), "R3": (119.5, 338), "R4": (129, 338),
-                                 "C1": (138.5, 338), "C2": (148, 338), "C3": (157.75, 338), "C4": (167.5, 338)}),
+    "board-mfrc522":           (59.496 * MM, 39.964 * MM,
+                                {n: (1.63 * MM, y * MM) for n, y in (("SDA", 10.86), ("SCK", 13.4), ("MOSI", 15.94),
+                                 ("MISO", 18.48), ("IRQ", 21.02), ("GND", 23.56), ("RST", 26.1), ("3.3V", 28.64))}),
     "wokwi-servo":             (45 * MM, 31.63 * MM, {"GND": (0, 50), "V+": (0, 59.5), "PWM": (0, 69)}),
     "wokwi-buzzer":            (17 * MM, 20 * MM, {"1": (27, 84), "2": (37, 84)}),
     "wokwi-led":               (40, 50, {"A": (25, 42), "C": (15, 42)}),
     "wokwi-resistor":          (15.645 * MM, 3 * MM, {"1": (0, 5.65), "2": (58.8, 5.65)}),
     "wokwi-pushbutton":        (17.802 * MM, 12 * MM,
                                 {"1.l": (0, 13), "2.l": (0, 32), "1.r": (67, 13), "2.r": (67, 32)}),
-    "wokwi-slide-switch":      (8.5 * MM, 9.23 * MM, {"1": (6.5, 34), "2": (16, 34), "3": (25.5, 34)}),
     "wokwi-pir-motion-sensor": (24 * MM, 24.448 * MM, {"VCC": (36.178, 92), "OUT": (45.9175, 92), "GND": (55.6415, 92)}),
     "wokwi-photoresistor-sensor": (45.95 * MM, 16.267 * MM,
                                    {"VCC": (172, 16), "GND": (172, 26), "DO": (172, 35.8), "AO": (172, 45.5)}),
@@ -192,14 +191,17 @@ def read_pins():
 # --------------------------------------------------------------------------
 # Layout
 #
-# Rules that keep the signal wiring planar (no signal ever crosses another):
+# Rules that keep the wiring readable:
 #  * Parts sit on the side of the board their pins face, in the same order
 #    as the header pins they use.
 #  * Each signal leaves the header horizontally into its own vertical lane.
 #    Wires that fan UP use lanes closer to the board the higher their pin;
 #    wires that fan DOWN use lanes closer to the board the lower their pin.
+#    That keeps every point-to-point signal free of crossings; only the RFID
+#    readers' shared bus lines (SCK, MOSI, MISO, RST go to both readers)
+#    cross each other, near the header.
 #  * Power (red) and ground (black) run on rails/corridors with straight
-#    taps; they are the only wires allowed to cross signals.
+#    taps and cross signals only at right angles.
 # --------------------------------------------------------------------------
 SIG, PWR, GND, I2C, SPI, KEY = "green", "red", "black", "blue", "orange", "purple"
 LANE = 8                        # spacing between parallel wires
@@ -208,7 +210,7 @@ LANE = 8                        # spacing between parallel wires
 def build():
     P = read_pins()
     d = Diagram()
-    d.part("esp", "board-esp32-s3-devkitc-1", 0, 0)
+    d.part("esp", "board-esp32-s3-devkitc-1", 0, 0, builder="esp-idf")   # wokwi.com: build with ESP-IDF, not Arduino
     pin = lambda name: f"esp:{P[name]}"
     px = lambda ref: d.pin(ref)[0]
     py = lambda ref: d.pin(ref)[1]
@@ -219,7 +221,7 @@ def build():
 
     # ---------------------------------------------------------------- top corridors
     # Room power arrives over the top of the board: 3V3 from the left header,
-    # GND from the right header's GND.2 (which runs up left of the keypad).
+    # GND from the right header's GND.2 (which runs up left of the readers).
     Y_TOP_GND, Y_TOP_V = -470, -462
 
     d.label("title", -560, Y_TOP_GND - 60,
@@ -282,34 +284,22 @@ def build():
     # 3V3 / GND.2 feed the corridors (wires to the room-1 LDR supply pins)
     d.wire("esp:3V3.1", "room1_ldr:VCC", PWR, ("h", -6), ("v", Y_TOP_V), ("h", px("room1_ldr:VCC") + 10),
            ("v", py("room1_ldr:VCC")))
-    X_GND2 = XR + 8
+    X_GND2 = XR + 8                              # GND.2 riser (also feeds the readers)
     d.wire("esp:GND.2", "room1_ldr:GND", GND, ("h", X_GND2), ("v", Y_TOP_GND), ("h", px("room1_ldr:GND") + 18),
            ("v", py("room1_ldr:GND")))
 
-    # ================================================================ LEFT: cards, SD, buzzer
-    down = ["PIN_CARD_BTN_1", "PIN_CARD_BTN_2", "PIN_CARD_BTN_3", "PIN_CARD_BTN_4",
-            "PIN_SD_MISO", "PIN_SD_SCK", "PIN_SD_MOSI", "PIN_SD_CS", "PIN_BUZZER", "5V", "GND.1"]
+    # ================================================================ LEFT: SD, buzzer
+    down = ["PIN_SD_MISO", "PIN_SD_SCK", "PIN_SD_MOSI", "PIN_SD_CS", "PIN_BUZZER", "5V", "GND.1"]
     down_lane = lanes_from(-6, -LANE, list(reversed(down)))     # lower pin -> closer lane
     ref = lambda n: pin(n) if n.startswith("PIN_") else f"esp:{n}"
 
-    x_btn = -205
-    cards = [("blue", "Alice (student)"), ("green", "Bob (staff)"),
-             ("yellow", "Carol (security)"), ("red", "Admin (PIN 1234)")]
-    for k, (color, who) in enumerate(cards):
-        bid, top = f"card{k + 1}", 110 + k * 64
-        d.part(bid, "wokwi-pushbutton", x_btn, top, color=color, key=k + 1, bounce=0)
-        n = down[k]
-        d.wire(ref(n), f"{bid}:1.r", SIG, ("h", down_lane[n]), ("v", py(f"{bid}:1.r")))
-        d.label(f"lbl_card{k + 1}", x_btn - 205, top + 16, f"[{k + 1}] Card: {who}")
-    d.label("lbl_cards", x_btn - 205, 80, "RFID reader (simulated):\none button per card")
-
-    sd_left, sd_top = -205, 380
+    sd_left, sd_top = -205, 150
     d.part("sd", "wokwi-microsd-card", sd_left, sd_top)
-    for n, sdpin in zip(down[4:8], ["DO", "SCK", "DI", "CS"]):
+    for n, sdpin in zip(down[:4], ["DO", "SCK", "DI", "CS"]):
         d.wire(ref(n), f"sd:{sdpin}", SPI, ("h", down_lane[n]), ("v", py(f"sd:{sdpin}")))
     d.label("lbl_sd", sd_left - 205, sd_top + 30, "microSD card\nhash-chained event log")
 
-    bz_left, bz_top = -200, 500
+    bz_left, bz_top = -200, 270
     d.part("buzzer", "wokwi-buzzer", bz_left, bz_top, volume=0.2)
     d.wire(ref("PIN_BUZZER"), "buzzer:2", SIG, ("h", down_lane["PIN_BUZZER"]),
            ("v", py("buzzer:2") + 14), ("h", px("buzzer:2")))
@@ -321,28 +311,40 @@ def build():
     x_sd_v, x_sd_g = px("sd:VCC") + 8, px("sd:VCC") + 16
     d.wire("sd:VCC", "esp:5V", PWR, ("h", x_sd_v), ("v", Y_5V), ("h", down_lane["5V"]), ("v", py("esp:5V")))
     d.wire("sd:GND", "buzzer:1", GND, ("h", x_sd_g), ("v", Y_GND), ("h", px("buzzer:1")))
-    # card grounds: chained on the buttons' left pins, down into the GND corridor
-    x_cg = x_btn - 12
-    for k in range(3):
-        d.wire(f"card{k + 1}:2.l", f"card{k + 2}:2.l", GND, ("h", x_cg), ("v", py(f"card{k + 2}:2.l")))
-    d.wire("card4:2.l", "buzzer:1", GND, ("h", x_cg), ("v", Y_GND), ("h", px("buzzer:1")))
     # room rails close the loop at the bottom-left
     d.wire("room2_pir:GND", "buzzer:1", GND, ("v", room2[3]), ("h", X_RAIL_G),
            ("v", Y_GND), ("h", px("buzzer:1")))
 
-    # ================================================================ RIGHT: keypad (fans up)
-    kp_left, kp_top = 120, -390
-    d.part("keypad", "wokwi-membrane-keypad", kp_left, kp_top)
-    keys = ["R1", "R2", "R3", "R4", "C1", "C2", "C3", "C4"]
-    for k in keys:
-        n = f"PIN_KEYPAD_{k}"
-        d.wire(pin(n), f"keypad:{k}", KEY, ("h", px(f"keypad:{k}")))
-    d.label("lbl_keypad", kp_left + 280, kp_top + 120,
-            "ENTRANCE keypad\nA = admin login\n0-9 PIN, # submit\n* clear, D logout")
+    # ================================================================ RIGHT: RFID readers (fan up)
+    # Entry reader above the exit reader. Each reader has its own chip-select;
+    # SCK / MOSI / MISO / RST are one bus shared by both (same nets).
+    rd_left = 200
+    readers = (("rfid_in", -400, "PIN_RFID_IN_CS", "ENTRY RFID reader (MFRC522)\npresent a card here to come IN"),
+               ("rfid_out", -215, "PIN_RFID_OUT_CS", "EXIT RFID reader (MFRC522)\npresent a card here to go OUT"))
+    shared = (("PIN_RFID_SCK", "SCK"), ("PIN_RFID_MOSI", "MOSI"), ("PIN_RFID_MISO", "MISO"), ("PIN_RFID_RST", "RST"))
+    for rid, top, _, _ in readers:
+        d.part(rid, "board-mfrc522", rd_left, top)
+    # One lane per wire, the first wire on the closest lane, so the readers'
+    # ends of the wires never cross; the shared bus lines cross near the header.
+    wires = ([(readers[0][2], f"{readers[0][0]}:SDA")] + [(n, f"{readers[0][0]}:{p}") for n, p in shared] +
+             [(readers[1][2], f"{readers[1][0]}:SDA")] + [(n, f"{readers[1][0]}:{p}") for n, p in shared])
+    for k, (n, target) in enumerate(wires):
+        d.wire(pin(n), target, SPI, ("h", XR + 16 + LANE * k), ("v", py(target)))
+    X_3V3R = rd_left - 10                        # 3V3 riser just left of the readers
+    for rid, top, _, text in readers:
+        d.wire("esp:GND.2", f"{rid}:GND", GND, ("h", X_GND2), ("v", py(f"{rid}:GND")))
+        d.wire("esp:3V3.1", f"{rid}:3.3V", PWR, ("h", -6), ("v", Y_TOP_V), ("h", X_3V3R),
+               ("v", py(f"{rid}:3.3V")))
+        d.label(f"lbl_{rid}", rd_left + 240, top + 40, text)
+    d.label("lbl_cards", rd_left + 240, readers[1][1] + 100,
+            "Cards: pick one in the reader's panel, then Tap\n"
+            "Blue = Alice (student)   Green = Bob (staff)\n"
+            "Yellow = Carol (security)   Red = Admin (PIN 1234)\n"
+            "Key fob = unregistered card")
 
     # ================================================================ RIGHT: column of entrance parts
     rdown = ["PIN_I2C_SDA", "PIN_I2C_SCL", "PIN_DOOR_IN_SERVO", "PIN_DOOR_OUT_SERVO",
-             "PIN_BREAK_GLASS", "PIN_LED_GRANTED", "PIN_READER_SELECT", "GND.3", "GND.4"]
+             "PIN_BREAK_GLASS", "PIN_LED_GRANTED", "GND.3", "GND.4"]
     rlane = lanes_from(XR + 8, LANE, list(reversed(rdown)))   # lower pin -> closer lane
     X_RV, X_RG = 300, 308                                       # 5V and GND rails
     x_col = 330                                                 # parts' pin edge
@@ -371,10 +373,10 @@ def build():
         d.label(f"lbl_{sid}", x_col + 180, top + 50, text)
 
     glass_top = servo_top + 270
-    d.part("break_glass", "wokwi-pushbutton", x_col, glass_top, color="red", key="b", bounce=0)
+    d.part("break_glass", "wokwi-pushbutton", x_col, glass_top, color="red", key="e", bounce=0)
     d.wire(pin("PIN_BREAK_GLASS"), "break_glass:1.l", SIG, ("h", rlane["PIN_BREAK_GLASS"]),
            ("v", py("break_glass:1.l")))
-    d.label("lbl_glass", x_col + 80, glass_top + 14, "[b] BREAK GLASS: emergency, all doors open")
+    d.label("lbl_glass", x_col + 80, glass_top + 14, "[e] BREAK GLASS: emergency, all doors open")
 
     led_top = glass_top + 70
     d.part("led_granted", "wokwi-led", x_col + 60, led_top, color="green", flip=1)
@@ -384,23 +386,14 @@ def build():
     d.wire("led_granted_r:2", "led_granted:A", SIG)
     d.label("lbl_led", x_col + 110, led_top + 20, "Access granted LED")
 
-    sw_top = led_top + 90
-    d.part("reader_select", "wokwi-slide-switch", x_col + 20, sw_top)
-    y_sw = py("reader_select:2") + 22
-    d.wire(pin("PIN_READER_SELECT"), "reader_select:2", SIG, ("h", rlane["PIN_READER_SELECT"]),
-           ("v", y_sw), ("h", px("reader_select:2")))
-    d.label("lbl_switch", x_col + 70, sw_top + 6, "Reader select: left = ENTRY (IN), right = EXIT (OUT)")
-
     # ---- right power: GND rail (X_RG) from GND.4, 5V rail (X_RV) from the left corridor
-    Y_RG = py("reader_select:2") + 60
+    Y_RG = y_r + 50
     chain_g = ["lcd:GND", "rtc:GND", "door_in:GND", "door_out:GND", "break_glass:2.l"]
     for a, b in zip(chain_g, chain_g[1:]):
         d.wire(a, b, GND, ("h", X_RG), ("v", py(b)))
     d.wire("break_glass:2.l", "led_granted:C", GND, ("h", X_RG), ("v", y_r + 10), ("h", px("led_granted:C")))
-    d.wire("reader_select:1", "led_granted:C", GND, ("v", py("reader_select:1") + 10), ("h", X_RG),
+    d.wire("esp:GND.4", "led_granted:C", GND, ("h", rlane["GND.4"]), ("v", Y_RG), ("h", X_RG),
            ("v", y_r + 10), ("h", px("led_granted:C")))
-    d.wire("esp:GND.4", "reader_select:1", GND, ("h", rlane["GND.4"]), ("v", Y_RG), ("h", X_RG),
-           ("v", py("reader_select:1") + 10), ("h", px("reader_select:1")))
 
     chain_v = ["lcd:VCC", "rtc:5V", "door_in:V+", "door_out:V+"]
     for a, b in zip(chain_v, chain_v[1:]):

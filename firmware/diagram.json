@@ -8,7 +8,9 @@
       "id": "esp",
       "top": 0,
       "left": 0,
-      "attrs": {}
+      "attrs": {
+        "builder": "esp-idf"
+      }
     },
     {
       "type": "wokwi-text",
@@ -110,105 +112,16 @@
       }
     },
     {
-      "type": "wokwi-pushbutton",
-      "id": "card1",
-      "top": 110,
-      "left": -205,
-      "attrs": {
-        "color": "blue",
-        "key": "1",
-        "bounce": "0"
-      }
-    },
-    {
-      "type": "wokwi-text",
-      "id": "lbl_card1",
-      "top": 126,
-      "left": -410,
-      "attrs": {
-        "text": "[1] Card: Alice (student)"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "card2",
-      "top": 174,
-      "left": -205,
-      "attrs": {
-        "color": "green",
-        "key": "2",
-        "bounce": "0"
-      }
-    },
-    {
-      "type": "wokwi-text",
-      "id": "lbl_card2",
-      "top": 190,
-      "left": -410,
-      "attrs": {
-        "text": "[2] Card: Bob (staff)"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "card3",
-      "top": 238,
-      "left": -205,
-      "attrs": {
-        "color": "yellow",
-        "key": "3",
-        "bounce": "0"
-      }
-    },
-    {
-      "type": "wokwi-text",
-      "id": "lbl_card3",
-      "top": 254,
-      "left": -410,
-      "attrs": {
-        "text": "[3] Card: Carol (security)"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "card4",
-      "top": 302,
-      "left": -205,
-      "attrs": {
-        "color": "red",
-        "key": "4",
-        "bounce": "0"
-      }
-    },
-    {
-      "type": "wokwi-text",
-      "id": "lbl_card4",
-      "top": 318,
-      "left": -410,
-      "attrs": {
-        "text": "[4] Card: Admin (PIN 1234)"
-      }
-    },
-    {
-      "type": "wokwi-text",
-      "id": "lbl_cards",
-      "top": 80,
-      "left": -410,
-      "attrs": {
-        "text": "RFID reader (simulated):\none button per card"
-      }
-    },
-    {
       "type": "wokwi-microsd-card",
       "id": "sd",
-      "top": 380,
+      "top": 150,
       "left": -205,
       "attrs": {}
     },
     {
       "type": "wokwi-text",
       "id": "lbl_sd",
-      "top": 410,
+      "top": 180,
       "left": -410,
       "attrs": {
         "text": "microSD card\nhash-chained event log"
@@ -217,7 +130,7 @@
     {
       "type": "wokwi-buzzer",
       "id": "buzzer",
-      "top": 500,
+      "top": 270,
       "left": -200,
       "attrs": {
         "volume": "0.2"
@@ -226,26 +139,51 @@
     {
       "type": "wokwi-text",
       "id": "lbl_buzzer",
-      "top": 530,
+      "top": 300,
       "left": -405,
       "attrs": {
         "text": "Buzzer (entrance)"
       }
     },
     {
-      "type": "wokwi-membrane-keypad",
-      "id": "keypad",
-      "top": -390,
-      "left": 120,
+      "type": "board-mfrc522",
+      "id": "rfid_in",
+      "top": -400,
+      "left": 200,
+      "attrs": {}
+    },
+    {
+      "type": "board-mfrc522",
+      "id": "rfid_out",
+      "top": -215,
+      "left": 200,
       "attrs": {}
     },
     {
       "type": "wokwi-text",
-      "id": "lbl_keypad",
-      "top": -270,
-      "left": 400,
+      "id": "lbl_rfid_in",
+      "top": -360,
+      "left": 440,
       "attrs": {
-        "text": "ENTRANCE keypad\nA = admin login\n0-9 PIN, # submit\n* clear, D logout"
+        "text": "ENTRY RFID reader (MFRC522)\npresent a card here to come IN"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_rfid_out",
+      "top": -175,
+      "left": 440,
+      "attrs": {
+        "text": "EXIT RFID reader (MFRC522)\npresent a card here to go OUT"
+      }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl_cards",
+      "top": -115,
+      "left": 440,
+      "attrs": {
+        "text": "Cards: pick one in the reader's panel, then Tap\nBlue = Alice (student)   Green = Bob (staff)\nYellow = Carol (security)   Red = Admin (PIN 1234)\nKey fob = unregistered card"
       }
     },
     {
@@ -321,7 +259,7 @@
       "left": 330,
       "attrs": {
         "color": "red",
-        "key": "b",
+        "key": "e",
         "bounce": "0"
       }
     },
@@ -331,7 +269,7 @@
       "top": 677.58,
       "left": 410,
       "attrs": {
-        "text": "[b] BREAK GLASS: emergency, all doors open"
+        "text": "[e] BREAK GLASS: emergency, all doors open"
       }
     },
     {
@@ -360,22 +298,6 @@
       "left": 440,
       "attrs": {
         "text": "Access granted LED"
-      }
-    },
-    {
-      "type": "wokwi-slide-switch",
-      "id": "reader_select",
-      "top": 823.58,
-      "left": 350,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-text",
-      "id": "lbl_switch",
-      "top": 829.58,
-      "left": 400,
-      "attrs": {
-        "text": "Reader select: left = ENTRY (IN), right = EXIT (OUT)"
       }
     }
   ],
@@ -565,48 +487,12 @@
       ]
     ],
     [
-      "esp:17",
-      "card1:1.r",
-      "green",
-      [
-        "h-91.08",
-        "v7.62"
-      ]
-    ],
-    [
-      "esp:18",
-      "card2:1.r",
-      "green",
-      [
-        "h-83.08",
-        "v62.02"
-      ]
-    ],
-    [
-      "esp:8",
-      "card3:1.r",
-      "green",
-      [
-        "h-75.08",
-        "v116.42"
-      ]
-    ],
-    [
-      "esp:9",
-      "card4:1.r",
-      "green",
-      [
-        "h-67.08",
-        "v151.62"
-      ]
-    ],
-    [
       "esp:10",
       "sd:DO",
       "orange",
       [
         "h-59.08",
-        "v225.89"
+        "v-4.11"
       ]
     ],
     [
@@ -615,7 +501,7 @@
       "orange",
       [
         "h-51.08",
-        "v235.6"
+        "v5.6"
       ]
     ],
     [
@@ -624,7 +510,7 @@
       "orange",
       [
         "h-43.08",
-        "v245.28"
+        "v15.28"
       ]
     ],
     [
@@ -633,7 +519,7 @@
       "orange",
       [
         "h-35.08",
-        "v245.13"
+        "v15.13"
       ]
     ],
     [
@@ -642,7 +528,7 @@
       "green",
       [
         "h-27.08",
-        "v386.62",
+        "v156.62",
         "h-141"
       ]
     ],
@@ -652,7 +538,7 @@
       "black",
       [
         "h-11.08",
-        "v397.42",
+        "v167.42",
         "h-167"
       ]
     ],
@@ -664,7 +550,7 @@
         "h8",
         "v190.37",
         "h106.27",
-        "v-397.02"
+        "v-167.02"
       ]
     ],
     [
@@ -678,115 +564,144 @@
       ]
     ],
     [
-      "card1:2.l",
-      "card2:2.l",
-      "black",
-      [
-        "h-12",
-        "v64"
-      ]
-    ],
-    [
-      "card2:2.l",
-      "card3:2.l",
-      "black",
-      [
-        "h-12",
-        "v64"
-      ]
-    ],
-    [
-      "card3:2.l",
-      "card4:2.l",
-      "black",
-      [
-        "h-12",
-        "v64"
-      ]
-    ],
-    [
-      "card4:2.l",
-      "buzzer:1",
-      "black",
-      [
-        "h-12",
-        "v294",
-        "h44"
-      ]
-    ],
-    [
       "room2_pir:GND",
       "buzzer:1",
       "black",
       [
         "v46",
         "h-279.26",
-        "v705",
+        "v475",
         "h455"
       ]
     ],
     [
       "esp:1",
-      "keypad:R1",
-      "purple",
+      "rfid_in:SDA",
+      "orange",
       [
-        "h128.57"
+        "h16",
+        "v-416.73"
       ]
     ],
     [
       "esp:2",
-      "keypad:R2",
-      "purple",
+      "rfid_in:SCK",
+      "orange",
       [
-        "h138.57"
+        "h24",
+        "v-416.73"
       ]
     ],
     [
       "esp:42",
-      "keypad:R3",
-      "purple",
+      "rfid_in:MOSI",
+      "orange",
       [
-        "h148.07"
+        "h32",
+        "v-416.73"
       ]
     ],
     [
       "esp:41",
-      "keypad:R4",
-      "purple",
+      "rfid_in:MISO",
+      "orange",
       [
-        "h157.57"
+        "h40",
+        "v-416.73"
       ]
     ],
     [
       "esp:40",
-      "keypad:C1",
-      "purple",
+      "rfid_in:RST",
+      "orange",
       [
-        "h167.07"
+        "h48",
+        "v-397.53"
       ]
     ],
     [
       "esp:39",
-      "keypad:C2",
-      "purple",
+      "rfid_out:SDA",
+      "orange",
       [
-        "h176.57"
+        "h56",
+        "v-279.73"
       ]
     ],
     [
-      "esp:38",
-      "keypad:C3",
-      "purple",
+      "esp:2",
+      "rfid_out:SCK",
+      "orange",
       [
-        "h186.32"
+        "h64",
+        "v-231.73"
       ]
     ],
     [
-      "esp:37",
-      "keypad:C4",
-      "purple",
+      "esp:42",
+      "rfid_out:MOSI",
+      "orange",
       [
-        "h196.07"
+        "h72",
+        "v-231.73"
+      ]
+    ],
+    [
+      "esp:41",
+      "rfid_out:MISO",
+      "orange",
+      [
+        "h80",
+        "v-231.73"
+      ]
+    ],
+    [
+      "esp:40",
+      "rfid_out:RST",
+      "orange",
+      [
+        "h88",
+        "v-212.53"
+      ]
+    ],
+    [
+      "esp:GND.2",
+      "rfid_in:GND",
+      "black",
+      [
+        "h8",
+        "v-339.93"
+      ]
+    ],
+    [
+      "esp:3V3.1",
+      "rfid_in:3.3V",
+      "red",
+      [
+        "h-11.08",
+        "v-490.98",
+        "h196",
+        "v170.24"
+      ]
+    ],
+    [
+      "esp:GND.2",
+      "rfid_out:GND",
+      "black",
+      [
+        "h8",
+        "v-154.93"
+      ]
+    ],
+    [
+      "esp:3V3.1",
+      "rfid_out:3.3V",
+      "red",
+      [
+        "h-11.08",
+        "v-490.98",
+        "h196",
+        "v355.24"
       ]
     ],
     [
@@ -806,7 +721,7 @@
       "rtc:SDA",
       "blue",
       [
-        "h72",
+        "h64",
         "v183.5"
       ]
     ],
@@ -815,7 +730,7 @@
       "rtc:SCL",
       "blue",
       [
-        "h64",
+        "h56",
         "v183.4"
       ]
     ],
@@ -824,7 +739,7 @@
       "door_in:PWM",
       "green",
       [
-        "h56",
+        "h48",
         "v289.6"
       ]
     ],
@@ -833,7 +748,7 @@
       "door_out:PWM",
       "green",
       [
-        "h48",
+        "h40",
         "v410"
       ]
     ],
@@ -842,7 +757,7 @@
       "break_glass:1.l",
       "green",
       [
-        "h40",
+        "h32",
         "v484.4"
       ]
     ],
@@ -851,7 +766,7 @@
       "led_granted_r:1",
       "green",
       [
-        "h32",
+        "h24",
         "v587.8"
       ]
     ],
@@ -860,16 +775,6 @@
       "led_granted:A",
       "green",
       []
-    ],
-    [
-      "esp:19",
-      "reader_select:2",
-      "green",
-      [
-        "h24",
-        "v668.2",
-        "h250.57"
-      ]
     ],
     [
       "lcd:GND",
@@ -918,26 +823,15 @@
       ]
     ],
     [
-      "reader_select:1",
+      "esp:GND.4",
       "led_granted:C",
       "black",
       [
-        "v10",
-        "h-48.5",
-        "v-68",
-        "h97"
-      ]
-    ],
-    [
-      "esp:GND.4",
-      "reader_select:1",
-      "black",
-      [
         "h8",
-        "v687",
+        "v609",
         "h208.57",
-        "v-50",
-        "h48.5"
+        "v-40",
+        "h97"
       ]
     ],
     [
@@ -973,9 +867,9 @@
       "red",
       [
         "h-19.08",
-        "v706.6",
+        "v628.6",
         "h314",
-        "v-344.5"
+        "v-266.5"
       ]
     ]
   ],
