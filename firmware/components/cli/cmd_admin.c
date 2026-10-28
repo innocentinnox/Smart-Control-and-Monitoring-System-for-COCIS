@@ -1,6 +1,14 @@
 /* Configuration commands. Everything that changes the system requires an
  * admin session (card + PIN, see auth.h); the change is logged with the
- * admin's card UID. */
+ * admin's card UID.
+ *
+ * Common pattern of each handler:
+ *   1. check argc/argv and print a usage line if the words are wrong,
+ *   2. cli_require_admin() - refuse unless an admin is logged in (so a
+ *      passer-by at the serial port cannot open doors or add cards),
+ *   3. call the service, passing auth_session_uid() as "by" for the log.
+ * Showing values (plain "schedule", "time", "emergency") needs no login.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +24,11 @@
 #include "users.h"
 
 /* ---------------- login / logout ---------------- */
+
+/* Two-step login from the console:
+ *   "login"        -> arm the FSM; the admin then taps the admin card,
+ *   "login <PIN>"  -> second factor, only accepted after the card step.
+ * The PIN can also be typed on the keypad instead (hub_keypad.c). */
 static int cmd_login(int argc, char **argv)
 {
     if (argc == 1) {
@@ -27,6 +40,8 @@ static int cmd_login(int argc, char **argv)
                "then type 'login <PIN>' here (or the 4-digit PIN on the keypad).\n");
         return 0;
     }
+    /* A PIN without a card first is refused here with a clear message
+     * (the FSM would just ignore it). */
     if (auth_state() != AUTH_ST_WAIT_PIN) {
         printf("Run 'login' and tap the admin card first (two-factor login).\n");
         return 1;
@@ -38,6 +53,7 @@ static int cmd_login(int argc, char **argv)
     return r == AUTH_OK ? 0 : 1;
 }
 
+/* "logout": end the admin session. Arguments are ignored. */
 static int cmd_logout(int argc, char **argv)
 {
     printf("%s\n", auth_logout() == AUTH_LOGOUT ? "Logged out." : "No active session.");
@@ -45,6 +61,9 @@ static int cmd_logout(int argc, char **argv)
 }
 
 /* ---------------- schedule ---------------- */
+
+/* Parse "HH:MM" (00:00..23:59) into minutes after midnight.
+ * @return false (and *out untouched) if the text is not a valid time. */
 static bool parse_hhmm(const char *s, uint16_t *out)
 {
     int h, m;
@@ -55,7 +74,10 @@ static bool parse_hhmm(const char *s, uint16_t *out)
     return true;
 }
 
-/* "weekdays" | "mon-sat" | "all" | 7-char mask like "-MTWTF-" (Sun..Sat) */
+/* Parse the working days into a days_mask (bit 0 = Sunday ... bit 6 = Saturday).
+ * "weekdays" | "mon-sat" | "all" | 7-char mask like "-MTWTF-" (Sun..Sat)
+ * In the 7-char form any character other than '-' marks an open day, so
+ * "-MTWTF-" and "-xxxxx-" mean the same. */
 static bool parse_days(const char *s, uint8_t *out)
 {
     if (strcasecmp(s, "weekdays") == 0) { *out = DAYS_MON_FRI; return true; }
@@ -71,6 +93,10 @@ static bool parse_days(const char *s, uint8_t *out)
     return true;
 }
 
+/* "schedule"                              -> show opening hours (anyone)
+ * "schedule set HH:MM HH:MM [days]"       -> change them (admin)
+ * argv[2] = open time, argv[3] = close time, argv[4] = optional days
+ * (kept unchanged if omitted). close < open means an overnight window. */
 static int cmd_schedule(int argc, char **argv)
 {
     const char *usage = "schedule | schedule set HH:MM HH:MM [weekdays|mon-sat|all|SMTWTFS]";
@@ -89,6 +115,8 @@ static int cmd_schedule(int argc, char **argv)
     if (!cli_require_admin()) {
         return 1;
     }
+    /* Start from the current schedule so an omitted days argument keeps
+     * the existing working days. */
     access_schedule_t s = cfg.schedule;
     if (!parse_hhmm(argv[2], &s.open_min) || !parse_hhmm(argv[3], &s.close_min) ||
         (argc > 4 && !parse_days(argv[4], &s.days_mask))) {
@@ -100,6 +128,11 @@ static int cmd_schedule(int argc, char **argv)
 }
 
 /* ---------------- user management ---------------- */
+
+/* "user add <UID> <name> <role> [PIN]"  -> register a card
+ * "user del|enable|disable <UID>"       -> remove / unblock / block a card
+ * UID is 1..8 hex digits (e.g. A1B2C3D4). Name/PIN rules are checked by
+ * users_add(); its error code is printed if it refuses. */
 static int cmd_user(int argc, char **argv)
 {
     const char *usage = "user add <UID> <name> <student|staff|security|admin> [PIN]\n"
@@ -123,6 +156,7 @@ static int cmd_user(int argc, char **argv)
     } else if (strcmp(argv[1], "del") == 0) {
         err = users_remove(uid, by);
     } else if (strcmp(argv[1], "enable") == 0 || strcmp(argv[1], "disable") == 0) {
+        /* 'e'nable -> true, 'd'isable -> false. */
         err = users_set_enabled(uid, argv[1][0] == 'e', by);
     } else {
         return cli_usage(usage);
@@ -132,6 +166,10 @@ static int cmd_user(int argc, char **argv)
 }
 
 /* ---------------- room light override ---------------- */
+
+/* "light <room> auto|on|off": force a room's lights, or give control back to
+ * the room's own logic ("auto"). The hub does not switch lights itself; it
+ * sends a MSG_LIGHT_CMD over the bus to the room node, which applies it. */
 static int cmd_light(int argc, char **argv)
 {
     light_mode_t mode;
@@ -142,6 +180,7 @@ static int cmd_light(int argc, char **argv)
     if (!cli_require_admin()) {
         return 1;
     }
+    /* Wait at most 100 ms for space in the room's queue, then give up. */
     bus_msg_t m = { .type = MSG_LIGHT_CMD, .light.mode = mode };
     bool sent = bus_send(NODE_HUB, room_to_node(room), &m, pdMS_TO_TICKS(100));
     cocis_log(LOG_CONFIG, "key=light%d value=%s by=%08lX", room, light_mode_str(mode),
@@ -151,8 +190,12 @@ static int cmd_light(int argc, char **argv)
 }
 
 /* ---------------- lockdown / emergency ---------------- */
+
+/* "lockdown on|off": while on, only security/admin cards pass the doors.
+ * Stored in the config (NVS), so it survives a reboot. */
 static int cmd_lockdown(int argc, char **argv)
 {
+    /* strcmp() returns 0 on a match, so this is "neither 'on' nor 'off'". */
     if (argc < 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
         return cli_usage("lockdown on|off");
     }
@@ -164,6 +207,10 @@ static int cmd_lockdown(int argc, char **argv)
     return 0;
 }
 
+/* "emergency"        -> show whether the break-glass alarm is active (anyone)
+ * "emergency clear"  -> end the emergency: release and close both doors (admin).
+ * An emergency is started by the physical break-glass button (doors are
+ * then held open), not from the console. */
 static int cmd_emergency(int argc, char **argv)
 {
     if (argc < 2 || strcmp(argv[1], "clear") != 0) {
@@ -180,6 +227,10 @@ static int cmd_emergency(int argc, char **argv)
 }
 
 /* ---------------- clock ---------------- */
+
+/* "time"                          -> show local time (anyone)
+ * "time set YYYY-MM-DD HH:MM"     -> set system clock + RTC (admin)
+ * Seconds are set to 0. */
 static int cmd_time(int argc, char **argv)
 {
     if (argc == 1) {
@@ -188,6 +239,7 @@ static int cmd_time(int argc, char **argv)
         printf("%s (EAT)\n", now);
         return 0;
     }
+    /* tm_isdst = -1: let mktime() decide daylight saving (none in EAT). */
     struct tm t = { .tm_isdst = -1 };
     if (argc < 4 || strcmp(argv[1], "set") != 0 ||
         sscanf(argv[2], "%d-%d-%d", &t.tm_year, &t.tm_mon, &t.tm_mday) != 3 ||
@@ -197,6 +249,7 @@ static int cmd_time(int argc, char **argv)
     if (!cli_require_admin()) {
         return 1;
     }
+    /* struct tm counts years from 1900 and months from 0 (January = 0). */
     t.tm_year -= 1900;
     t.tm_mon  -= 1;
     esp_err_t err = clock_set(&t);
@@ -206,6 +259,8 @@ static int cmd_time(int argc, char **argv)
     return 0;
 }
 
+/* Command table: name typed at the prompt, text shown by "help", handler.
+ * static const: the table is built once (in flash), not on the stack. */
 void cli_register_admin_cmds(void)
 {
     static const esp_console_cmd_t cmds[] = {

@@ -1,4 +1,9 @@
-/* Read-only monitoring commands: anyone at the console may use them. */
+/* Read-only monitoring commands: anyone at the console may use them.
+ *
+ * They only read: every service returns copies under its own mutex
+ * (config_get, hub_stats, occupancy_snapshot, users_snapshot), so printing
+ * never blocks the hub for long and never sees half-updated data.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +20,8 @@
 #include "storage.h"
 #include "users.h"
 
+/* "status": one-screen overview of the whole system (time, schedule,
+ * modes, occupancy, counters, storage, bus, admin session, rooms). */
 static int cmd_status(int argc, char **argv)
 {
     char now[32], sched[40];
@@ -27,9 +34,11 @@ static int cmd_status(int argc, char **argv)
     config_schedule_str(&cfg.schedule, sched, sizeof(sched));
     hub_stats(&st);
     clock_local(&t);
+    /* >= 0: building is open, value = minutes until closing; -1: closed. */
     int to_close = schedule_minutes_to_close(&cfg.schedule, t.tm_wday, t.tm_hour * 60 + t.tm_min);
 
     printf("Time        : %s (EAT)\n", now);
+    /* esp_timer_get_time() is microseconds since boot. */
     printf("Uptime      : %llu s, free heap %lu B\n", esp_timer_get_time() / 1000000ULL,
            (unsigned long)esp_get_free_heap_size());
     printf("Schedule    : %s (v%lu)  -> %s", sched, (unsigned long)cfg.version,
@@ -48,6 +57,7 @@ static int cmd_status(int argc, char **argv)
     if (auth_is_admin()) printf(" as %08lX (%lu s left)", (unsigned long)auth_session_uid(),
                                 (unsigned long)auth_session_left_s());
     printf("\n");
+    /* Rooms are numbered 1..ROOM_COUNT; data is the hub's latest report. */
     for (int r = 1; r <= ROOM_COUNT; r++) {
         room_status_t rs;
         hub_room_status(r, &rs);
@@ -58,12 +68,17 @@ static int cmd_status(int argc, char **argv)
     return 0;
 }
 
+/* "who": muster list - everyone the occupancy ledger says is inside, with
+ * name, role and entry time. */
 static int cmd_who(int argc, char **argv)
 {
+    /* static: a 64-entry array is kept off the console task's stack. */
     static presence_t people[OCCUPANCY_MAX];
     size_t n = occupancy_snapshot(people, OCCUPANCY_MAX);
     printf("%u people inside the building:\n", (unsigned)n);
     for (size_t i = 0; i < n; i++) {
+        /* The ledger only stores UIDs; names come from the user registry.
+         * A card deleted while inside is shown as "?". */
         user_t u;
         bool known = users_find(people[i].uid, &u);
         struct tm t;
@@ -76,6 +91,9 @@ static int cmd_who(int argc, char **argv)
     return 0;
 }
 
+/* "rooms": table of each room's link, occupancy, light level and mode,
+ * light sensor reading, and energy (Wh used vs. saved compared to lights
+ * always on during opening hours). */
 static int cmd_rooms(int argc, char **argv)
 {
     printf("Room  Link     Occupancy  Light  Mode  Lux    Used Wh  Saved Wh\n");
@@ -89,8 +107,11 @@ static int cmd_rooms(int argc, char **argv)
     return 0;
 }
 
+/* "users": table of all registered cards. Only shows whether a PIN is set,
+ * never the hash. */
 static int cmd_users(int argc, char **argv)
 {
+    /* static: 32 user records are too big for the console task's stack. */
     static user_t users[USERS_MAX];
     size_t n = users_snapshot(users, USERS_MAX);
     printf("UID       Name            Role      State    PIN  Inside\n");
@@ -102,6 +123,10 @@ static int cmd_users(int argc, char **argv)
     return 0;
 }
 
+/* "log tail [n]"           -> print the last n lines of today's log (default 10)
+ * "log verify [YYYYMMDD]"  -> re-check the hash chain of a day's file
+ *                             (default today) to detect edited lines
+ * "log echo on|off"        -> show / hide new log lines on the console */
 static int cmd_log(int argc, char **argv)
 {
     const char *usage = "log tail [n] | log verify [YYYYMMDD] | log echo on|off";
@@ -114,6 +139,8 @@ static int cmd_log(int argc, char **argv)
         return 0;
     }
     if (strcmp(argv[1], "verify") == 0) {
+        /* lines = number checked (-1 = no file); bad = first broken line
+         * (1-based) or 0 if every line's hash matches. */
         int bad = 0;
         int lines = storage_verify(argc > 2 ? argv[2] : NULL, &bad);
         if (lines < 0) {
@@ -127,6 +154,7 @@ static int cmd_log(int argc, char **argv)
         printf("OK: %d lines, hash chain intact.\n", lines);
         return 0;
     }
+    /* Anything other than "on" (e.g. "off") turns the echo off. */
     if (strcmp(argv[1], "echo") == 0 && argc > 2) {
         storage_set_echo(strcmp(argv[2], "on") == 0);
         return 0;
@@ -134,6 +162,7 @@ static int cmd_log(int argc, char **argv)
     return cli_usage(usage);
 }
 
+/* Command table (name, "help" text, handler) registered with esp_console. */
 void cli_register_monitor_cmds(void)
 {
     static const esp_console_cmd_t cmds[] = {

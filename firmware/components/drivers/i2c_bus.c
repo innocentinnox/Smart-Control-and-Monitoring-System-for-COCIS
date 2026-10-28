@@ -1,3 +1,6 @@
+/* Shared I2C master bus (LCD backpack 0x27 + DS1307 RTC 0x68).
+ * Uses the ESP-IDF v5 "i2c_master" driver: one bus handle, plus one device
+ * handle per chip that remembers its address and clock speed. */
 #include "i2c_bus.h"
 
 #include "board_pins.h"
@@ -6,6 +9,9 @@ static i2c_master_bus_handle_t s_bus;
 
 esp_err_t i2c_bus_init(void)
 {
+    /* glitch_ignore_cnt filters out spikes shorter than 7 clock cycles on
+     * SDA/SCL. The internal pull-ups are weak, but the bus lines need
+     * pull-ups to work at all, and in Wokwi they are enough. */
     i2c_master_bus_config_t cfg = {
         .i2c_port          = I2C_NUM_0,
         .sda_io_num        = PIN_I2C_SDA,
