@@ -124,7 +124,7 @@
       "type": "wokwi-text",
       "id": "lbl_card1",
       "top": 126,
-      "left": -355,
+      "left": -410,
       "attrs": {
         "text": "[1] Card: Alice (student)"
       }
@@ -144,7 +144,7 @@
       "type": "wokwi-text",
       "id": "lbl_card2",
       "top": 190,
-      "left": -355,
+      "left": -410,
       "attrs": {
         "text": "[2] Card: Bob (staff)"
       }
@@ -164,7 +164,7 @@
       "type": "wokwi-text",
       "id": "lbl_card3",
       "top": 254,
-      "left": -355,
+      "left": -410,
       "attrs": {
         "text": "[3] Card: Carol (security)"
       }
@@ -184,7 +184,7 @@
       "type": "wokwi-text",
       "id": "lbl_card4",
       "top": 318,
-      "left": -355,
+      "left": -410,
       "attrs": {
         "text": "[4] Card: Admin (PIN 1234)"
       }
@@ -192,10 +192,10 @@
     {
       "type": "wokwi-text",
       "id": "lbl_cards",
-      "top": 86,
-      "left": -355,
+      "top": 80,
+      "left": -410,
       "attrs": {
-        "text": "RFID reader (simulated): one button per card"
+        "text": "RFID reader (simulated):\none button per card"
       }
     },
     {
@@ -209,7 +209,7 @@
       "type": "wokwi-text",
       "id": "lbl_sd",
       "top": 410,
-      "left": -355,
+      "left": -410,
       "attrs": {
         "text": "microSD card\nhash-chained event log"
       }
@@ -227,7 +227,7 @@
       "type": "wokwi-text",
       "id": "lbl_buzzer",
       "top": 530,
-      "left": -350,
+      "left": -405,
       "attrs": {
         "text": "Buzzer (entrance)"
       }
@@ -260,10 +260,10 @@
     {
       "type": "wokwi-text",
       "id": "lbl_lcd",
-      "top": 65.58,
-      "left": 330,
+      "top": 123.58,
+      "left": 690,
       "attrs": {
-        "text": "LCD 20x4 (I2C 0x27): status, prompts"
+        "text": "LCD 20x4 (I2C 0x27)\nrow 4: lamp %, P = people,\nS = enough sunlight"
       }
     },
     {

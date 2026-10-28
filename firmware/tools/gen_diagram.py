@@ -300,20 +300,20 @@ def build():
         d.part(bid, "wokwi-pushbutton", x_btn, top, color=color, key=k + 1, bounce=0)
         n = down[k]
         d.wire(ref(n), f"{bid}:1.r", SIG, ("h", down_lane[n]), ("v", py(f"{bid}:1.r")))
-        d.label(f"lbl_card{k + 1}", x_btn - 150, top + 16, f"[{k + 1}] Card: {who}")
-    d.label("lbl_cards", x_btn - 150, 86, "RFID reader (simulated): one button per card")
+        d.label(f"lbl_card{k + 1}", x_btn - 205, top + 16, f"[{k + 1}] Card: {who}")
+    d.label("lbl_cards", x_btn - 205, 80, "RFID reader (simulated):\none button per card")
 
     sd_left, sd_top = -205, 380
     d.part("sd", "wokwi-microsd-card", sd_left, sd_top)
     for n, sdpin in zip(down[4:8], ["DO", "SCK", "DI", "CS"]):
         d.wire(ref(n), f"sd:{sdpin}", SPI, ("h", down_lane[n]), ("v", py(f"sd:{sdpin}")))
-    d.label("lbl_sd", sd_left - 150, sd_top + 30, "microSD card\nhash-chained event log")
+    d.label("lbl_sd", sd_left - 205, sd_top + 30, "microSD card\nhash-chained event log")
 
     bz_left, bz_top = -200, 500
     d.part("buzzer", "wokwi-buzzer", bz_left, bz_top, volume=0.2)
     d.wire(ref("PIN_BUZZER"), "buzzer:2", SIG, ("h", down_lane["PIN_BUZZER"]),
            ("v", py("buzzer:2") + 14), ("h", px("buzzer:2")))
-    d.label("lbl_buzzer", bz_left - 150, bz_top + 30, "Buzzer (entrance)")
+    d.label("lbl_buzzer", bz_left - 205, bz_top + 30, "Buzzer (entrance)")
 
     # ---- left bottom corridors: GND.1 (lowest) and 5V
     Y_GND, Y_5V = py("buzzer:2") + 44, py("buzzer:2") + 34
@@ -352,7 +352,8 @@ def build():
     d.part("lcd", "wokwi-lcd2004", x_col - 4, lcd_top, pins="i2c")
     d.wire(pin("PIN_I2C_SDA"), "lcd:SDA", I2C)
     d.wire(pin("PIN_I2C_SCL"), "lcd:SCL", I2C)
-    d.label("lbl_lcd", x_col, lcd_top - 18, "LCD 20x4 (I2C 0x27): status, prompts")
+    d.label("lbl_lcd", x_col + 360, lcd_top + 40,
+            "LCD 20x4 (I2C 0x27)\nrow 4: lamp %, P = people,\nS = enough sunlight")
 
     rtc_top = lcd_top + 200
     d.part("rtc", "wokwi-ds1307", x_col - 9.5, rtc_top)
