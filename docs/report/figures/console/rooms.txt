@@ -1,0 +1,4 @@
+cocis> rooms
+Room  Link     Occupancy  Light  Mode  Lux    Used Wh  Saved Wh
+1     online   vacant        0%  AUTO  650         0.0       0.4
+2     online   vacant        0%  AUTO  100         0.0       0.0

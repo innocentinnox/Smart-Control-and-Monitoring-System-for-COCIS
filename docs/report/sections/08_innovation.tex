@@ -12,6 +12,9 @@ the following, grouped by the goal named in the brief.
         proves that no record was edited, inserted or deleted (\cref{sec:op-storage}).
   \item \textbf{Two-factor admin login} (card + PIN) with salted PIN hashes, 3-attempt lockout,
         30\,s step timeouts and a 5-minute session (\cref{sec:op-auth}).
+  \item \textbf{Real RFID readers at both doors} (MFRC522, ISO 14443\,A), with a driver written
+        from the datasheet: UID check bytes verified, each presentation counted once, and a reader
+        health check (\code{ALERT RFID_FAIL}, automatic retry).
   \item \textbf{Anti-passback}, so one card cannot be used by two people.
   \item \textbf{Lockdown mode}: only security and admin may pass.
   \item \textbf{Replay protection} on the bus: duplicated or replayed messages are dropped.

@@ -16,7 +16,7 @@ Command & Effect \\
 \multicolumn{2}{@{}l}{\emph{Monitoring}} \\
 \code{status} & Time, uptime, schedule and whether open now (minutes to closing), lockdown,
   emergency and escort state, people inside, granted/denied/alert counts, storage state, rejected
-  bus frames, admin session, and a line per room. \\
+  bus frames, RFID reader health, admin session, and a line per room. \\
 \code{who} & People inside: UID, name, role, entry time. \\
 \code{rooms} & Per room: link, occupancy, lamp level, mode, lux, energy used and saved (Wh). \\
 \code{users} & Registered cards: UID, name, role, enabled, has PIN, inside. \\
@@ -27,7 +27,7 @@ Command & Effect \\
 \code{emergency} & Show the break-glass state. \\
 \code{time} & Show the current time. \\
 \multicolumn{2}{@{}l}{\emph{Session}} \\
-\code{login} & Start a login; then tap the admin card. \\
+\code{login} & Start a login; then present the admin card at either reader. \\
 \code{login <PIN>} & Second factor: the 4-digit PIN. \\
 \code{logout} & End the admin session. \\
 \multicolumn{2}{@{}l}{\emph{Configuration (admin)}} \\
@@ -42,7 +42,7 @@ Command & Effect \\
 \code{emergency clear} & End a break-glass emergency and close the doors. \\
 \code{time set YYYY-MM-DD HH:MM} & Set the clock and the DS1307 RTC. \\
 \multicolumn{2}{@{}l}{\emph{Simulation}} \\
-\code{tap <UID> in|out} & Scan any card at a reader, e.g.\ \code{tap DEADBEEF in} for an
+\code{tap <UID> in|out} & Scan any card at a reader, e.g.\ \code{tap C0FFEE99 in} for an
   unregistered card. \\
 \code{node <1|2> offline|online} & Cut or restore a room's link to show offline detection. \\
 \code{help} & List all commands. \\

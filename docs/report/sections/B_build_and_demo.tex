@@ -11,43 +11,64 @@ idf.py set-target esp32s3        # first time only
 idf.py build
 \end{lstlisting}
 Then open \file{firmware/} in VS Code and run \textbf{Wokwi: Start Simulator} (it reads
-\file{wokwi.toml}). Click the serial monitor and type \code{help}. In the Wokwi canvas, keys
-\code{1}--\code{4} press the card buttons and \code{b} the break-glass button.
+\file{wokwi.toml}). Click the serial monitor and type \code{help}. To present a card, click the
+ENTRY or EXIT reader, choose a card in its panel and press \textbf{Tap}. Key \code{e} presses the
+break-glass button.
+
+\subsection{Running the Wokwi link}
+\label{app:wokwi-link}
+Open \wokwilink{} and press play: wokwi.com builds the firmware from the project's source files
+with its online ESP-IDF builder (v5.3), chosen by \code{"builder": "esp-idf"} on the board in
+\file{diagram.json}, and starts the simulation. The online project holds the same sources as
+the repository, gathered into one folder (\file{firmware/wokwi/web/}, made by
+\code{make wokwi-web}), because the online builder has no components, CMake or Kconfig.
+
+The code builds unchanged on both ESP-IDF versions: the project settings fall back to the
+defaults in \file{cocis_kconfig.h} when there is no Kconfig, \file{cocis_crypto.c} uses PSA
+Crypto on v6 and the classic mbedtls SHA-256 functions on v5, short waits do not depend on the
+FreeRTOS tick rate, and bring-up runs in its own task with its own stack.
+
+A prebuilt copy of the firmware, \file{firmware/wokwi/cocis_smart_control.uf2.bin}
+(\code{make wokwi-fw}), can also be loaded into the project with \textbf{F1} (or right-click
+$\rightarrow$ \textbf{Command Palette}) $\rightarrow$ \textbf{Upload Firmware and Start
+Simulation\ldots}; it lasts until the page is reloaded.
 
 \subsection{Other tasks (from the repository root)}
 \begin{lstlisting}[style=console]
 make test       # host unit tests (gcc, or the gcc:14 Docker image)
 make diagram    # regenerate firmware/diagram.json and the wiring figure
-make pdf        # build this report -> docs/report.pdf
+make pdf        # build this report -> docs/report.pdf (make report does the same)
+make wokwi-web  # regenerate firmware/wokwi/web/, the files of the online Wokwi project
+make wokwi-fw   # rebuild the prebuilt backup firmware/wokwi/cocis_smart_control.uf2.bin
+make sim        # run the three Wokwi scenarios (needs wokwi-cli + WOKWI_CLI_TOKEN)
 \end{lstlisting}
 
 \subsection{Demonstration script}
-The defaults are 07:00--22:00, Monday to Saturday. Run during those hours, with the reader
-switch on the left (IN):
+The defaults are 07:00--22:00, Monday to Saturday, so run it during those hours.
+\code{ENTRY} and \code{EXIT} are the two readers.
 
 \begin{lstlisting}[style=console]
-status                          # overview
-<press 1>                       # Alice enters             -> Welcome Alice, entry door opens
-<press 1>                       # again at IN              -> DENIED ANTI_PASSBACK
-<switch right (OUT), press 1>   # Alice leaves             -> Goodbye Alice, exit door opens
-tap DEADBEEF in                 # unregistered card        -> DENIED UNKNOWN_CARD
+status                          # overview, both RFID readers OK
+<ENTRY: Tap Blue>               # Alice enters             -> Welcome Alice, entry door opens
+<ENTRY: Tap Blue>               # again                    -> DENIED ANTI_PASSBACK
+<EXIT: Tap Blue>                # Alice leaves             -> Goodbye Alice, exit door opens
+<ENTRY: Tap Key fob>            # unregistered card        -> DENIED UNKNOWN_CARD
 <Room 1: LDR below 150 lux, click PIR>   # occupied + dark -> lamp 100 %, LCD "R1 100% P-"
 <wait about 20 s>               # dims to 30 %, then off at 30 s
 <LDR above 400 lux, click PIR>  # bright                   -> lamp stays off, LCD shows S
-<switch left (IN), press 2, 3>  # Bob and Carol enter
-login                           # then press 4 (admin card), then:
+<ENTRY: Tap Green, Tap Yellow>  # Bob and Carol enter
+login                           # then on a reader: Tap Red (admin card), then:
 login 1234
 schedule set 07:00 08:00 all    # a window that has already ended today -> SHUT
-<switch right (OUT), press 2>   # Bob refused: OUTSIDE_HOURS + ALERT AFTER_HOURS_EXIT
-<press 3>                       # Carol (security) leaves  -> escort window opens for 60 s
-<press 2>                       # Bob leaves               -> OK_ESCORT
+<EXIT: Tap Green>               # Bob refused: OUTSIDE_HOURS + ALERT AFTER_HOURS_EXIT
+<EXIT: Tap Yellow>              # Carol (security) leaves  -> escort window opens for 60 s
+<EXIT: Tap Green>               # Bob leaves               -> OK_ESCORT
 node 2 offline                  # 15 s later: ALERT NODE_OFFLINE, LCD "R2 offline"
 node 2 online
-<press b>                       # break glass: both doors open, alarm, EMRG
+<press e>                       # break glass: both doors open, alarm, EMRG
 emergency clear
 schedule set 07:00 22:00 mon-sat
 who
 log tail 20
 log verify                      # OK: hash chain intact
 \end{lstlisting}
-Keypad alternative for the login: press \code{A}, press key \code{4}, type \code{1234}.

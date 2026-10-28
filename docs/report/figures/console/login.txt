@@ -1,0 +1,11 @@
+cocis> schedule set 07:00 18:00 weekdays
+Admin session required. Run 'login', tap the admin card, then 'login <PIN>'.
+cocis> login
+Tap the ADMIN card (Red card) at either RFID reader within 30 s,
+then type 'login <PIN>' here.
+cocis> [LOG] 000012|2026-10-28T11:42:46|AUTH|uid=AABBCCDD result=CARD_OK
+cocis> login 1234
+Logged in: admin session started.
+cocis> schedule set 07:00 18:00 weekdays
+Schedule updated.
+cocis> [LOG] 000014|2026-10-28T11:42:46|CONFIG|key=schedule value=07:00-18:00_-MTWTF- version=2 by=AABBCCDD

@@ -5,7 +5,9 @@
 
 \subsection{Toolchain and project layout}
 The firmware is an ESP-IDF~v6.0.3 project for the ESP32-S3 (\file{firmware/}), written in C11. It
-builds with no warnings and uses about 26\,\% of the application partition.
+builds with no warnings and uses about 26\,\% of the application partition. The same sources also
+build with the wokwi.com online builder (ESP-IDF~v5.3), which is how the shared Wokwi link runs
+(\cref{app:wokwi-link}).
 
 \begin{lstlisting}[style=console]
 firmware/
@@ -13,12 +15,12 @@ firmware/
   components/
     common/          types, pin map, task table, SHA-256
     core_logic/      access_policy, room_logic, auth_fsm   <- pure, unit tested
-    drivers/         i2c_bus, lcd2004, ds1307, keypad, buttons, pwm, actuators, light_sensor
+    drivers/         i2c_bus, lcd2004, ds1307, mfrc522, buttons, pwm, actuators, light_sensor
     bus/             messages between terminals
     storage/         SD card gatekeeper + hash-chained log
     services/        users, config, occupancy, auth, clock (+ nvs_store helper)
     ui/              LCD, buzzer, LED task
-    nodes/           hub, hub_access, hub_keypad, room_node, door, rfid
+    nodes/           hub, hub_access, room_node, door, rfid
     cli/             serial menu: cmd_monitor, cmd_admin, cmd_sim
   test/host/         PC unit tests for core_logic
   tools/             gen_diagram.py (generates diagram.json)
@@ -40,9 +42,10 @@ one (a door opening). Stack sizes and priorities are kept together in
 \toprule
 Task & Prio & Stack & Job \\
 \midrule
-\code{keypad}  & 6 & 3\,KB & Scans the keypad after a column interrupt, debounces, sends \code{MSG_KEY}. \\
-\code{buttons} & 6 & 3\,KB & Debounces card and break-glass presses (interrupt $\rightarrow$ queue $\rightarrow$
-  task), sends \code{MSG_CARD_SCAN} / \code{MSG_BREAK_GLASS}. \\
+\code{rfid}    & 6 & 3\,KB & Polls both RFID readers every 100\,ms, reads a newly presented card's
+  UID, sends \code{MSG_CARD_SCAN}; re-initialises a reader that stopped answering. \\
+\code{buttons} & 6 & 3\,KB & Debounces the break-glass button (interrupt $\rightarrow$ queue
+  $\rightarrow$ task), sends \code{MSG_BREAK_GLASS}. \\
 \code{hub}     & 5 & 6\,KB & Entrance terminal: access decisions, admin login, room supervision,
   energy log. \\
 \code{room1}, \code{room2} & 4 & 4\,KB & Room terminals: sense every 200\,ms, decide the lamp
@@ -55,7 +58,7 @@ Task & Prio & Stack & Job \\
 \end{center}
 The door auto-close uses one \code{esp_timer} per door (a callback, not a task).
 
-Input tasks have the highest priority so presses are never missed. The storage, UI and CLI tasks
+Input tasks have the highest priority so no card or button press is missed. The storage, UI and CLI tasks
 are below the terminals because they only consume results.
 
 \subsection{Boot sequence}
@@ -82,8 +85,7 @@ are below the terminals because they only consume results.
 \toprule
 Type & Direction & Payload \\
 \midrule
-\code{MSG_CARD_SCAN} & reader $\rightarrow$ hub & card UID, side (IN/OUT) \\
-\code{MSG_KEY} & keypad $\rightarrow$ hub & key character \\
+\code{MSG_CARD_SCAN} & RFID reader $\rightarrow$ hub & card UID, side (IN/OUT) \\
 \code{MSG_BREAK_GLASS} & button $\rightarrow$ hub & -- \\
 \code{MSG_ROOM_STATE} & room $\rightarrow$ hub & occupied, daylight, level, lux, mode, energy used/saved \\
 \code{MSG_HEARTBEAT} & room $\rightarrow$ hub & uptime \\
@@ -96,6 +98,29 @@ Type & Direction & Payload \\
 that sender. \code{bus_recv()} remembers the last sequence number seen from each sender and drops
 any message that is not newer, so a duplicated or replayed frame is never processed twice. The
 number dropped is shown by \code{status}.
+
+\subsection{RFID reader driver}
+\label{sec:sw-rfid}
+\file{components/drivers/mfrc522.c} talks to the MFRC522 chip over SPI. The chip is a radio front
+end: the ESP32 puts bytes in its 64-byte FIFO, starts a \emph{Transceive} command, and reads the
+card's answer back from the FIFO. Reading a card's UID follows ISO/IEC 14443-3 type A:
+\begin{enumerate}
+  \item \textbf{REQA} (or \textbf{WUPA} for a card that was put to sleep): ``is a card there?''.
+        A card answers with its 2-byte ATQA.
+  \item \textbf{ANTICOLL}: the card sends 4 UID bytes and their XOR check byte (BCC), which the
+        driver verifies.
+  \item \textbf{SELECT} with a CRC\_A: the card confirms and answers SAK, which says whether more
+        UID bytes follow (7-byte UIDs take two such levels).
+  \item \textbf{HLTA}: the card goes to sleep, so a card left on the reader is not read again and
+        again.
+\end{enumerate}
+\file{components/nodes/rfid.c} owns SPI bus~3 and both readers. Its task polls each reader every
+100\,ms. A card counts as a \emph{new} presentation when that reader has not seen it during the last
+1.5\,s, so a card held on the reader opens the door once, and presenting it again later is a new
+scan. A 4-byte UID is used as the 32-bit card number first byte first (Blue card
+\code{01:02:03:04} $\rightarrow$ \code{01020304}); a 7-byte UID keeps its last 4 bytes. At boot
+the task resets both readers and checks each chip answers; a reader that does not is logged as
+\code{ALERT code=RFID_FAIL} and retried every 5\,s, and \code{status} shows the readers' health.
 
 \subsection{Pure decision logic (\code{core_logic})}
 The rules that matter most are plain C functions with no hardware access: they take a struct of
@@ -147,8 +172,9 @@ safe to call any FreeRTOS or logging function from the code that handles the pre
         enum and its string names only once, using X-macros in \file{cocis_types.h}.
   \item \textbf{One way to do each thing.} All modules log through
         \code{cocis_log(type, "k=v ...")}. One PWM layer drives servos, lamps and the buzzer. One
-        button driver handles cards and break-glass. One NVS blob helper is used by all persistent
-        modules.
+        button driver (interrupt, queue, debounce) serves any push button. Every card scan, from
+        either reader or the CLI's \code{tap}, goes through the same \code{rfid_inject()}. One NVS
+        blob helper is used by all persistent modules.
   \item \textbf{Separation of concerns.} Drivers know hardware, services know state, nodes combine
         them, and \code{core_logic} knows only the rules.
 \end{itemize}

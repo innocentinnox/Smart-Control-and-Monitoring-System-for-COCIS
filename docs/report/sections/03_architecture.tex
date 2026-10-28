@@ -8,7 +8,7 @@ The brief asks for three control terminals: the main entrance, Lecture Room~1 an
 Room~2 (\req{2.3}). Each one is a separate program with its own inputs and outputs:
 
 \begin{description}[leftmargin=1.2em]
-  \item[Entrance terminal (the \emph{hub}).] Reads the RFID readers, the keypad and the
+  \item[Entrance terminal (the \emph{hub}).] Reads the entry and exit RFID readers and the
         break-glass button, decides who may pass, drives the two door servos, the LCD, the buzzer
         and the LED, and keeps the occupancy ledger. It is the \textbf{single authority}: it is the
         only code that makes access decisions or changes who is inside.
@@ -28,9 +28,8 @@ The terminals share no variables. They exchange \textbf{messages only}, over the
   % column x: inputs 0, hub 5.2, outputs 10.4 ; rows y top-down
   \node[hw]   (pc)    at (0,   4.2) {Serial terminal};
   \node[task] (cli)   at (5.2, 4.2) {\textbf{CLI task} (serial menu)};
-  \node[hw]   (cards) at (0,   2.0) {Card buttons\\+ reader switch};
-  \node[hw]   (keys)  at (0,   0.8) {4$\times$4 keypad};
-  \node[hw]   (glass) at (0,  -0.3) {Break-glass};
+  \node[hw]   (cards) at (0,   1.6) {Entry + exit\\RFID readers};
+  \node[hw]   (glass) at (0,  -0.1) {Break-glass};
   \node[task,minimum width=44mm,minimum height=30mm] (hub) at (5.2, 0.85)
     {\textbf{HUB task}\\(entrance, single authority)\\[2pt]
      \footnotesize access\_policy (pure)\\ \footnotesize auth\_fsm (pure)\\
@@ -46,8 +45,7 @@ The terminals share no variables. They exchange \textbf{messages only}, over the
 
   \draw[arr,<->] (pc) -- (cli);
   \draw[arr,dashed] (cli) -- node[lbl,right]{reads services, sends commands} (hub);
-  \draw[arr] (cards) -- node[lbl,above]{scan} (hub.west |- cards);
-  \draw[arr] (keys)  -- node[lbl,above]{key} (hub.west |- keys);
+  \draw[arr] (cards) -- node[lbl,above]{card scan} (hub.west |- cards);
   \draw[arr] (glass) -- (hub.west |- glass);
   \draw[arr] (hub.east |- door) -- (door);
   \draw[arr] (hub.east |- ui) -- (ui);
@@ -99,7 +97,7 @@ downward, so lower layers never know about higher ones.
   \node[layer=30mm]  at (0,    -32mm)   {\textbf{ui}: LCD, sounds};
   \node[layer=30mm]  at (37mm, -32mm)   {\textbf{services}: users, config, occupancy, auth, clock};
   \node[layer=30mm]  at (74mm, -32mm)   {\textbf{bus}: node messages};
-  \node[layer=30mm]  at (0,    -48mm)   {\textbf{drivers}: I2C, LCD, RTC, keypad, PWM, ADC};
+  \node[layer=30mm]  at (0,    -48mm)   {\textbf{drivers}: I2C, LCD, RTC, RFID, PWM, ADC};
   \node[layer=30mm]  at (37mm, -48mm)   {\textbf{storage}: SD gatekeeper, log};
   \node[layer=30mm,pure] at (74mm,-48mm){\textbf{core\_logic}: pure rules (unit tested)};
   \node[layer=104mm] at (37mm, -64mm)   {\textbf{common}: types, pin map, task table, SHA-256};
@@ -119,14 +117,14 @@ Component & Responsibility \\
   tables), the pin map \file{board_pins.h}, the task table \file{task_config.h}, SHA-256. \\
 \code{core_logic} & \textbf{Pure decision logic}: access rules, room lighting, admin two-factor state
   machine. No hardware, no RTOS, so it is unit-tested on a PC. \\
-\code{drivers} & Thin hardware drivers: I2C bus, LCD2004, DS1307 RTC, keypad, buttons, PWM (servo,
-  lamp, buzzer), light sensor. \\
+\code{drivers} & Thin hardware drivers: I2C bus, LCD2004, DS1307 RTC, MFRC522 RFID reader,
+  buttons, PWM (servo, lamp, buzzer), light sensor. \\
 \code{bus} & Messages between terminals with sequence numbers and duplicate rejection. \\
 \code{storage} & The SD card gatekeeper task and the hash-chained log. \\
 \code{services} & Shared state, each module behind its own mutex and persisted in NVS: users,
   config (schedule, lockdown), occupancy ledger, auth session, clock. \\
 \code{ui} & The task that owns the LCD, buzzer and green LED. \\
-\code{nodes} & The three terminals (hub, two rooms), the door servos and the RFID front end. \\
+\code{nodes} & The three terminals (hub, two rooms), the door servos and the RFID reader task. \\
 \code{cli} & The serial management menu (\code{esp_console}). \\
 \bottomrule
 \end{tabularx}

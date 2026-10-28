@@ -33,7 +33,7 @@ SD card (SPI + FAT) & Interleaved writes corrupt files or mix lines & Gatekeeper
   semaphore. \\
 Log sequence numbers & Gaps or duplicates & Assigned only by the gatekeeper; resumed from the last
   line on the card after a reboot. \\
-Bus sequence numbers & Two tasks sending as the same node (e.g.\ the buttons task and the CLI's
+Bus sequence numbers & Two tasks sending as the same node (e.g.\ the rfid task and the CLI's
   \code{tap}) could enqueue seq 11 before seq 10, which the receiver would drop as stale & A
   per-sender mutex makes ``take next seq + enqueue'' one step. \emph{We found this race in code
   review and fixed it.} \\
@@ -43,12 +43,17 @@ Users, config, occupancy, auth & A reader sees a half-finished update & One mute
   copies out. \\
 Config in flash vs.\ in RAM & Power cut after the change but before the save & Saved to NVS first
   (atomic commit), then made live. \\
+RFID readers on one SPI bus & Two transfers mixed on the shared wires & One owner: only the
+  rfid task uses SPI bus~3, one reader at a time (each has its own chip-select). The SD card has its
+  own bus. \\
+Card held on a reader & One person counted many times & A card is a new scan only after 1.5\,s
+  unseen at that reader, and the card is halted after each read. \\
 ADC unit shared by both rooms & Interleaved conversions give wrong readings & Mutex in
   \file{light_sensor.c}. \\
 I2C bus (LCD + RTC) & Mixed transactions & ESP-IDF's I2C master bus lock per transaction. \\
 Door close timer vs.\ a new open & Door closes on the next person & The timer restarts on every
   open. \\
-Admin login & Late answers or races between keypad and CLI & One state machine behind a mutex;
+Admin login & A PIN typed late, or a card scan and the CLI acting at once & One state machine behind a mutex;
   deadlines are checked with wrap-safe time arithmetic. \\
 Power loss & Half-written state & Atomic NVS commits; each log line \code{fsync}ed; ledger saved on
   every change. \\

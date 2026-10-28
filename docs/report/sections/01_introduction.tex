@@ -13,9 +13,10 @@ left on in empty rooms. In October 2026 management agreed to pilot an automated 
 A complete, self-contained control and monitoring system on the ESP32-S3, simulated in Wokwi and
 written in C with ESP-IDF~v6.0 and FreeRTOS:
 \begin{itemize}
-  \item \textbf{Entrance terminal.} RFID identification at separate entry and exit readers, servo
-        door locks, anti-passback, an opening-hours schedule that also holds people inside after
-        hours, an LCD, a buzzer, and a keypad for two-factor admin login (card + PIN).
+  \item \textbf{Entrance terminal.} Two MFRC522 RFID readers, one at the entry and one at the
+        exit, each with its own servo door lock; anti-passback; an opening-hours schedule that also
+        holds people inside after hours; an LCD and a buzzer; and two-factor admin login (the admin
+        card at a reader + a PIN).
   \item \textbf{Two lecture-room terminals.} A PIR motion sensor and a light sensor per room drive a
         dimmable lamp. Lights turn off when the room is empty or when there is enough daylight, and
         the room reports the energy it used and saved.

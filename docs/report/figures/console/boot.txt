@@ -1,0 +1,10 @@
+I (131) clock: Time from RTC: 2026-10-28 11:34
+I (254) storage: SD card mounted at /sdcard
+I (259) crypto: SHA-256 self-test passed
+I (260) users: First boot: seeded 4 demo cards
+I (297) occupancy: 0 people inside at boot
+I (474) rfid: IN reader ready (MFRC522 version 0x92)
+I (527) rfid: OUT reader ready (MFRC522 version 0x92)
+[LOG] 000001|2026-10-28T11:34:46|ALERT|code=NODE_ONLINE detail=ROOM1
+[LOG] 000004|2026-10-28T11:34:46|ALERT|code=NODE_ONLINE detail=ROOM2
+[LOG] 000007|2026-10-28T11:34:46|BOOT|reason=POWER_ON

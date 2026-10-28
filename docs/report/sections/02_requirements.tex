@@ -17,8 +17,8 @@ Brief & Requirement & Implementation & Report \\
 Brief & Requirement & Implementation & Report \\
 \midrule
 \endhead
-\req{2.1} & Separate entry and exit points; RFID scan at both & Two readers (IN and OUT), each
-  with its own servo door. Card $\rightarrow$ \code{access_decide()} $\rightarrow$ door opens for
+\req{2.1} & Separate entry and exit points; RFID scan at both & Two MFRC522 RFID readers
+  (entry and exit), each with its own servo door. Card $\rightarrow$ \code{access_decide()} $\rightarrow$ door opens for
   3\,s. & \ref{sec:op-access} \\
 \req{2.1} & Verify identity, open the right door & User registry in NVS (UID, name, role,
   enabled). Only the door on the scanned side opens. & \ref{sec:op-access} \\

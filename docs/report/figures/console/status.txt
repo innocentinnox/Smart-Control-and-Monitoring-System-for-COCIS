@@ -1,0 +1,13 @@
+cocis> status
+Time        : 2026-10-28 11:42:46 Wed (EAT)
+Uptime      : 5 s, free heap 276400 B
+Schedule    : 07:00-22:00_-MTWTFS (v3)  -> OPEN, closes in 618 min
+Lockdown    : off   Emergency: off   Escort window: closed
+Inside      : 3 people
+Access      : 3 granted, 0 denied, 2 alerts
+Storage     : SD card OK, last seq 15
+Bus         : 0 duplicate frames rejected
+RFID readers: entry OK, exit OK
+Admin       : logged in as AABBCCDD (299 s left)
+Room 1      : online, vacant, light   0% (AUTO), 650 lux
+Room 2      : online, vacant, light   0% (AUTO), 100 lux

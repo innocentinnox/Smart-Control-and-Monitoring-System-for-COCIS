@@ -65,7 +65,7 @@
 \newcommand{\screenshot}[4][\linewidth]{%
   \begin{figure}[H]
   \centering
-  \IfFileExists{figures/#2.png}{\includegraphics[width=#1,height=0.42\textheight,keepaspectratio]{#2.png}}{%
+  \IfFileExists{figures/#2.png}{\includegraphics[width=#1,height=0.75\textheight,keepaspectratio]{#2.png}}{%
     \fcolorbox{red}{red!4}{\parbox{0.9\linewidth}{\centering\vspace{1.5em}
       \textcolor{red}{\textbf{Screenshot needed:} \texttt{docs/report/figures/#2.png}}\\[0.4em]
       \small\detokenize{#4}\vspace{1.5em}}}}
@@ -78,6 +78,15 @@
 \titleformat{\section}{\newpage\LARGE\bfseries}{\thesection}{0.6em}{}
 \setcounter{tocdepth}{2}
 \setcounter{secnumdepth}{3}
+
+% \consolefig{file}{caption}: real serial output captured from a Wokwi run
+%   (figures/console/<file>.txt, made by the scenarios in firmware/test/wokwi/)
+\newcommand{\consolefig}[2]{%
+  \begin{figure}[H]
+  \lstinputlisting[style=console]{figures/console/#1.txt}
+  \caption{#2}
+  \label{fig:con-#1}
+  \end{figure}}
 
 % hyperref last, as it patches sectioning commands
 \usepackage[hidelinks]{hyperref}

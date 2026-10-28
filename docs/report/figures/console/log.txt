@@ -1,0 +1,11 @@
+cocis> log tail 8
+000008|2026-10-28T11:42:42|ACCESS|uid=01020304 name=Alice role=STUDENT side=IN ok=1 reason=OK
+000009|2026-10-28T11:42:43|ACCESS|uid=11223344 name=Bob role=STAFF side=IN ok=1 reason=OK
+000010|2026-10-28T11:42:44|ACCESS|uid=55667788 name=Carol role=SECURITY side=IN ok=1 reason=OK
+000011|2026-10-28T11:42:45|ROOM|room=1 occupied=0 daylight=1 lux=650
+000012|2026-10-28T11:42:46|AUTH|uid=AABBCCDD result=CARD_OK
+000013|2026-10-28T11:42:46|AUTH|uid=AABBCCDD result=OK
+000014|2026-10-28T11:42:46|CONFIG|key=schedule value=07:00-18:00_-MTWTF- version=2 by=AABBCCDD
+000015|2026-10-28T11:42:46|CONFIG|key=schedule value=07:00-22:00_-MTWTFS version=3 by=AABBCCDD
+cocis> log verify
+OK: 15 lines, hash chain intact

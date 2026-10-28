@@ -1,0 +1,5 @@
+cocis> who
+3 people inside the building:
+  01020304  Alice           STUDENT   since 2026-10-28 11:42
+  11223344  Bob             STAFF     since 2026-10-28 11:42
+  55667788  Carol           SECURITY  since 2026-10-28 11:42

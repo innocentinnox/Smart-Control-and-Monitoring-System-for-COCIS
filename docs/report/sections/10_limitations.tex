@@ -8,16 +8,16 @@
   \item \textbf{One board simulates three terminals} (\cref{sec:one-board}). The terminals are
         isolated and talk only through the bus, but a separate-board transport (ESP-NOW or Wi-Fi)
         has not been implemented.
-  \item \textbf{RFID is simulated} with buttons, because Wokwi has no RFID reader part; only
-        \file{rfid.c} would change for a real reader.
+  \item \textbf{Card numbers are 32-bit.} 4-byte UIDs are used whole; 7-byte UIDs keep their last
+        4 bytes, so two 7-byte cards differing only in their first bytes would share a number.
+  \item \textbf{The readers are polled} every 100\,ms; their IRQ pin is not used.
   \item \textbf{The device does not send events to the dashboard yet.} The dashboard and its
         ingest API are tested on their own, with sample events.
   \item \textbf{Truncation of the newest log lines} cannot be detected by the hash chain on its
         own; an off-device copy (the dashboard) would cover that.
   \item \textbf{A few edge cases are not yet handled}, found while reviewing the code:
         \begin{itemize}
-          \item pressing \code{A} during an admin session silently starts a new login;
-          \item a card tapped after the login card step timed out shows ``Not an admin card'';
+          \item typing \code{login} during an admin session silently starts a new login;
           \item a full occupancy ledger (64 people) does not record the next entry.
         \end{itemize}
 \end{itemize}
@@ -30,5 +30,5 @@
   \item A local web page served by the hub over Wi-Fi.
   \item A closing-time warning on the LCD and buzzer 15 minutes before closing (the function
         \code{schedule_minutes_to_close()} is already written and tested).
-  \item A real RFID reader (MFRC522) behind the existing \file{rfid.h} interface.
+  \item Use the readers' IRQ pin to wake the rfid task instead of polling.
 \end{itemize}

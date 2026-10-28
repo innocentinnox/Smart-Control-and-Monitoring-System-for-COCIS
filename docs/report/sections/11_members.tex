@@ -14,6 +14,7 @@
 Wokwi simulation: & \wokwilink \\
 \end{tabular}
 \end{center}
+Open the link and press play: Wokwi builds and runs the firmware (\cref{app:wokwi-link}).
 
 \subsection{Individual contributions}
 \label{sec:contributions}
@@ -31,18 +32,18 @@ Member & Area and responsibilities & Main files \\
   NVS persistence, Wokwi diagram generator, report. &
   \file{main/main.c}, \file{bus/bus.c}, \file{storage/storage.c}, \file{services/occupancy.c},
   \file{services/nvs_store.c}, \file{tools/gen_diagram.py} \\
-\mBname & \todo{confirm} \textbf{Entrance access control.} RFID front end, access rules
-  (anti-passback, schedule, lockdown, escort), door servos, card-scan flow. &
-  \file{core_logic/access_policy.c}, \file{nodes/hub_access.c}, \file{nodes/door.c},
-  \file{nodes/rfid.c} \\
+\mBname & \todo{confirm} \textbf{Entrance access control.} MFRC522 RFID reader driver and
+  reader task, access rules (anti-passback, schedule, lockdown, escort), door servos, card-scan
+  flow. &
+  \file{drivers/mfrc522.c}, \file{nodes/rfid.c}, \file{core_logic/access_policy.c},
+  \file{nodes/hub_access.c}, \file{nodes/door.c} \\
 \mCname & \todo{confirm} \textbf{Lecture-room lighting.} Occupancy with grace period and dim
   warning, daylight harvesting, energy accounting, room node task, light sensor and lamp drivers. &
   \file{core_logic/room_logic.c}, \file{nodes/room_node.c}, \file{drivers/light_sensor.c},
   \file{drivers/actuators.c} \\
 \mDname & \todo{confirm} \textbf{Management interfaces and authentication.} Serial command menu,
-  two-factor admin login, keypad PIN entry, LCD/buzzer user interface, schedule configuration. &
-  \file{cli/*}, \file{core_logic/auth_fsm.c}, \file{services/auth.c}, \file{nodes/hub_keypad.c},
-  \file{ui/ui.c} \\
+  two-factor admin login, LCD/buzzer user interface, schedule configuration. &
+  \file{cli/*}, \file{core_logic/auth_fsm.c}, \file{services/auth.c}, \file{ui/ui.c} \\
 \mEname & \todo{confirm} \textbf{Testing and cloud dashboard.} Host unit tests, simulation test
   scenarios, Next.js dashboard with signed, idempotent event ingest. &
   \file{test/host/*}, \file{dashboard/*} \\

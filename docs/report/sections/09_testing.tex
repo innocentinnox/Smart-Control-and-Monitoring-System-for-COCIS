@@ -30,11 +30,24 @@ Types & Parsing of role names and card UIDs, including invalid input. \\
 
 \subsection{Build}
 \code{idf.py build} for the ESP32-S3 with ESP-IDF~v6.0.3 completes with \textbf{0 warnings}. The
-application image is 0x628C0 bytes (about 395\,KB), leaving 74\,\% of the application partition
+application image is 0x62A10 bytes (about 395\,KB), leaving 74\,\% of the application partition
 free.
 
 \subsection{Simulation testing in Wokwi}
-The system was run in the Wokwi simulator through VS Code. Observed results:
+The system is tested in the Wokwi simulator in two ways: interactively in VS Code, and
+automatically with the Wokwi CLI, which runs the real firmware image against
+\file{firmware/diagram.json} and follows a YAML scenario. A scenario presents the reader's
+preset cards, sets the light sensors, types console commands, and fails unless each expected
+line appears on the serial port:
+\begin{lstlisting}[style=console]
+wokwi-cli firmware --scenario test/wokwi/access.test.yaml --timeout 60000
+wokwi-cli firmware --scenario test/wokwi/demo.test.yaml   --timeout 90000
+wokwi-cli firmware --scenario test/wokwi/rules.test.yaml  --timeout 120000
+\end{lstlisting}
+\code{make sim} runs all three. All three pass. The online project (\wokwilink) was also
+built by wokwi.com's ESP-IDF~v5.3 builder and run: it boots, logs card scans at the entry reader,
+and reports daylight changes, as the local build does. The console figures in \cref{sec:operation} are their captured output.
+Observed results:
 
 \begin{center}
 \small
@@ -43,17 +56,38 @@ The system was run in the Wokwi simulator through VS Code. Observed results:
 Scenario & Result \\
 \midrule
 Boot & RTC time read, SD card mounted, SHA-256 self-test passed, 4 demo cards seeded, both
-  rooms reported online. \\
-Card scans & Alice, Bob and Carol entered and were logged as \code{ACCESS ... ok=1 reason=OK}. \\
+  RFID readers ready (MFRC522 version 0x92), both rooms online (\cref{fig:con-boot}). \\
+Card scans & Blue, Green and Yellow cards at the entry reader: \code{ok=1}; the Blue card again:
+  \code{ANTI_PASSBACK}; the Blue card at the exit reader: \code{OK}, side \code{OUT}; the key fob:
+  \code{UNKNOWN_CARD} (\cref{fig:con-access}). \\
 Reboot & The log resumed after the last sequence number; the ledger reported
   \enquote{2 people inside at boot}. \\
-Admin login & Card then PIN gave \code{AUTH result=CARD_OK} followed by \code{result=OK}. \\
+Admin login & \code{login}, the Red card at a reader, \code{login 1234}: \code{AUTH
+  result=CARD_OK}, then \code{result=OK}; the schedule change is refused before and accepted
+  after (\cref{fig:con-login}). \\
+Records & \code{who}, \code{rooms}, \code{status} and \code{log tail} match the scans;
+  \code{log verify} reports the hash chain intact. \\
+After hours & With the building closed, Bob is refused at the exit (\code{OUTSIDE_HOURS}) and
+  \code{ALERT AFTER_HOURS_EXIT} is raised; Carol (security) leaves, which opens the 60\,s escort
+  window; Bob then leaves (\code{OK_ESCORT}) (\cref{fig:con-rules}). \\
+Lockdown & A student is refused with \code{LOCKDOWN}. \\
+Node failure & \code{node 2 offline}: \code{ALERT NODE_OFFLINE} after the 15\,s timeout;
+  \code{NODE_ONLINE} when the link returns. \\
+Break-glass & The button raises \code{ALERT BREAK_GLASS} and holds both doors open;
+  \code{emergency clear} by the admin ends it and is logged. \\
 Light sensor & Moving the slider below 150\,lux logged \code{ROOM ... daylight=0}; above 400\,lux
   \code{daylight=1}. \\
 Energy & \code{ENERGY} lines appeared every 10 minutes for both rooms. \\
 \bottomrule
 \end{tabularx}
 \end{center}
+
+\consolefig{boot}{Boot log in Wokwi: storage, self-test, users, ledger and both RFID readers come
+  up before the terminals start.}
+
+\consolefig{rules}{The rules scenario in Wokwi: after-hours exit refused and escorted, lockdown,
+  a room terminal going offline, and break-glass (log lines shortened: \code{|...|} is the time
+  stamp; console prompts shown where a command was typed).}
 
 \subsection{Defects found and fixed}
 Testing in the simulator and code review found real bugs, which were fixed:
@@ -64,8 +98,8 @@ Testing in the simulator and code review found real bugs, which were fixed:
         \code{ledc_fade_isr}; we removed the hardware fade and fade the lamp in software from the
         room task instead.
   \item \textbf{Bus ordering race} (\cref{sec:sync}): fixed with a per-sender mutex.
-  \item \textbf{PIN entry}: the PIN was made exactly 4 digits with automatic submit, and a keypad
-        repeat guard stopped a single press being counted twice.
+  \item \textbf{PIN format}: PINs are exactly 4 digits, checked when a PIN is set and when it is
+        typed.
   \item \textbf{LCD overflow}: every row is now formatted to exactly 20 characters.
   \item \textbf{Late PIN after a timeout} was accepted by mistake; the state machine now checks
         expiry first, and a unit test covers it.
@@ -77,5 +111,4 @@ PostgreSQL 16 database, the sample sender inserted 18 events, then 18 duplicates
 (idempotent). A bad signature and a stale timestamp were rejected with HTTP 401, and a malformed
 body with HTTP 400.
 
-\todo{after the final demo run, add any further scenarios tested (schedule change, after-hours
-exit and escort, break-glass, node offline, log verify)}
+

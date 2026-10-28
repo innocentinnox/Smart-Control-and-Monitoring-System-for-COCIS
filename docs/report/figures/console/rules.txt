@@ -1,0 +1,21 @@
+cocis> schedule set 00:00 00:01 all
+000012|...|CONFIG|key=schedule value=00:00-00:01_SMTWTFS version=2 by=AABBCCDD
+000013|...|ACCESS|uid=11223344 name=Bob role=STAFF side=OUT ok=0 reason=OUTSIDE_HOURS
+000014|...|ALERT|code=AFTER_HOURS_EXIT detail=Bob
+000015|...|ACCESS|uid=55667788 name=Carol role=SECURITY side=OUT ok=1 reason=OK_PRIVILEGED
+000016|...|CONFIG|key=escort value=60s by=55667788
+000017|...|ACCESS|uid=11223344 name=Bob role=STAFF side=OUT ok=1 reason=OK_ESCORT
+cocis> schedule set 07:00 22:00 mon-sat
+cocis> lockdown on
+000019|...|CONFIG|key=lockdown value=1 by=AABBCCDD
+000020|...|ACCESS|uid=01020304 name=Alice role=STUDENT side=IN ok=0 reason=LOCKDOWN
+cocis> lockdown off
+cocis> node 2 offline
+000022|...|ALERT|code=NODE_OFFLINE detail=ROOM2
+cocis> node 2 online
+<break-glass button pressed>
+000026|...|ALERT|code=BREAK_GLASS detail=doors_held_open
+cocis> emergency clear
+000027|...|ALERT|code=BREAK_GLASS detail=cleared_by_AABBCCDD
+cocis> log verify
+OK: 27 lines, hash chain intact

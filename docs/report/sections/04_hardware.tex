@@ -4,7 +4,7 @@
 % ============================================================================
 
 \subsection{Bill of materials (Wokwi parts)}
-The circuit is \file{firmware/diagram.json}: 24 electronic parts plus 18 text labels.
+The circuit is \file{firmware/diagram.json}: 20 electronic parts plus 14 text labels.
 
 {\small
 \begin{longtable}{@{}p{0.25\linewidth}cp{0.62\linewidth}@{}}
@@ -14,17 +14,14 @@ Part (Wokwi type) & Qty & Purpose \\
 \endhead
 ESP32-S3-DevKitC-1 & 1 & Microcontroller: dual-core Xtensa LX7 at 160\,MHz, runs all terminals. \\
 \multicolumn{3}{@{}l}{\emph{Entrance terminal}} \\
-Push buttons (keys \code{1}--\code{4}) & 4 & Simulated RFID cards: Alice (student), Bob (staff),
-  Carol (security), Admin. \\
-Slide switch & 1 & Reader select: left = entry (IN) reader, right = exit (OUT) reader. \\
+MFRC522 RFID reader (\code{board-mfrc522}) & 2 & Entry reader and exit reader, 13.56\,MHz
+  ISO 14443\,A cards, SPI. Wokwi provides the cards (\cref{sec:rfid-cards}). \\
 Servo motor & 2 & Door locks: entry door and exit door (0\textdegree{} closed,
   90\textdegree{} open). \\
-4$\times$4 membrane keypad & 1 & Admin login: \code{A} start, \code{0}--\code{9} PIN, \texttt{\#}
-  submit, \code{*} clear, \code{D} log out. \\
 LCD 20$\times$4 (I2C, 0x27) & 1 & Status display and messages (\cref{sec:op-ui}). \\
-Buzzer & 1 & Audible feedback: granted, denied, key click, alarm. \\
+Buzzer & 1 & Audible feedback: granted, denied, information, alarm. \\
 LED (green) + 220\,$\Omega$ resistor & 1 & ``Access granted'' indicator, on for 2\,s. \\
-Push button (key \code{b}) & 1 & Break-glass emergency: opens both doors. \\
+Push button (key \code{e}) & 1 & Break-glass emergency: opens both doors. \\
 DS1307 RTC (I2C, 0x68) & 1 & Real-time clock, so the schedule works without a network. \\
 microSD card (SPI) & 1 & Event log storage (\req{2.4}). \\
 \multicolumn{3}{@{}l}{\emph{Each lecture room (2 sets)}} \\
@@ -35,15 +32,35 @@ LED (white) + resistor & 1 & The room's lamp, dimmed by PWM. \\
 \end{longtable}
 }
 
-\paragraph{RFID substitution.} Wokwi has no MFRC522 RFID reader part, so each card is a push button
-with a fixed 32-bit UID, and the slide switch chooses which reader (entry or exit) was used. All of
-this is hidden behind \file{components/nodes/include/rfid.h}: the rest of the system only ever sees
-``card \emph{UID} scanned at side \emph{IN/OUT}''. A real reader replaces only \file{rfid.c}. Any
-UID, including unregistered ones, can also be scanned with the CLI command \code{tap <UID> in|out}.
+\paragraph{RFID readers and cards.}
+\label{sec:rfid-cards}
+The entrance has two MFRC522 readers: the \textbf{entry reader} (people coming in) and the
+\textbf{exit reader} (people going out), each beside its own door. In Wokwi, clicking a reader
+opens its control panel: choose a card and press \textbf{Tap} (the card is held to the reader
+for 0.5\,s) or \textbf{Hold}. The preset cards are registered as the demo users:
+
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Wokwi card & UID & Registered as & Role \\
+\midrule
+Blue   & \code{01:02:03:04} & Alice & STUDENT \\
+Green  & \code{11:22:33:44} & Bob   & STAFF \\
+Yellow & \code{55:66:77:88} & Carol & SECURITY \\
+Red    & \code{AA:BB:CC:DD} & Admin & ADMIN (PIN \code{1234}) \\
+Key fob & \code{C0:FF:EE:99} & -- (unregistered) & -- \\
+NFC tag & \code{04:11:22:33:44:55:66} & -- (unregistered) & -- \\
+\bottomrule
+\end{tabular}
+\end{center}
+The rest of the system only ever sees ``card \emph{UID} scanned at side \emph{IN/OUT}''
+(\file{components/nodes/include/rfid.h}), so any UID, including unregistered ones, can also be
+scanned from the CLI with \code{tap <UID> in|out}.
 
 \subsection{Pin map}
 \file{components/common/include/board_pins.h} is the single source of truth. Pins follow the
-board's physical header order so that signal wires never cross in the diagram.
+board's physical header order, which keeps the diagram's wiring tidy (\cref{sec:wiring}).
 
 {\small
 \begin{longtable}{@{}llll@{}}
@@ -53,50 +70,58 @@ Header & Function & GPIO & Notes \\
 \endhead
 left  & Room 1: LDR / PIR / lamp & 4 / 5 / 6 & LDR on ADC1\_CH3 \\
 left  & Room 2: LDR / PIR / lamp & 7 / 15 / 16 & LDR on ADC1\_CH6 \\
-left  & Card buttons 1--4 & 17, 18, 8, 9 & pull-up, interrupt on press \\
-left  & SD card MISO / SCK / MOSI / CS & 10 / 11 / 12 / 13 & SPI2 \\
+left  & SD card MISO / SCK / MOSI / CS & 10 / 11 / 12 / 13 & SPI2 (SD card only) \\
 left  & Buzzer & 14 & LEDC PWM \\
-right & Keypad rows R1--R4 & 1, 2, 42, 41 & driven low one at a time \\
-right & Keypad columns C1--C4 & 40, 39, 38, 37 & pull-up, interrupt \\
+right & Entry reader SDA (chip select) & 1 & SPI3 \\
+right & RFID SCK / MOSI / MISO & 2 / 42 / 41 & SPI3, shared by both readers \\
+right & RFID RST & 40 & both readers, active low \\
+right & Exit reader SDA (chip select) & 39 & SPI3 \\
 right & I2C SDA / SCL (LCD, RTC) & 36 / 35 & one shared bus \\
 right & Entry / exit door servo & 48 / 47 & LEDC 50\,Hz \\
 right & Break-glass button & 21 & pull-up, interrupt \\
 right & ``Access granted'' LED & 20 & \\
-right & Reader select switch & 19 & low = IN reader \\
 \bottomrule
 \end{longtable}
 }
 
-\paragraph{Peripheral sharing.} The LCD and RTC share one I2C bus (different addresses). The ESP32
+\paragraph{Peripheral sharing.} The SD card has SPI bus~2 to itself; the two readers share
+SPI bus~3 and are told apart by their chip-select pins, so a card read never waits for an SD write.
+The LCD and RTC share one I2C bus (different addresses). The ESP32
 LED controller (LEDC) provides all PWM: timer~0 at 50\,Hz for both servos, timer~1 at 5\,kHz for
 the two lamps, and timer~2 for the buzzer, whose frequency changes per tone. The two light sensors
 share ADC unit~1, protected by a mutex (\cref{sec:sync}).
 
 \subsection{Wiring}
+\label{sec:wiring}
 The Wokwi diagram is \textbf{generated}, not drawn by hand. \file{firmware/tools/gen_diagram.py}
 reads the GPIO numbers from \file{board_pins.h}, places each part beside the header pins it uses,
 routes every wire with explicit horizontal and vertical segments, adds a text label to every group,
-and then checks the result: no two different nets overlap, no wire runs through a part, signal
-wires never cross each other, and only power and ground cross signals, at right angles.
+and then checks the result: no two different nets overlap and no wire runs through a part. Point-to-%
+point signals never cross; the readers' shared bus lines and the power and ground rails cross other
+wires only at right angles.
 \code{make diagram} regenerates both \file{diagram.json} and \cref{fig:wiring}.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{wiring.png}
 \caption{Wiring layout rendered by \code{gen_diagram.py --preview}. Left: the two lecture rooms,
-the four card buttons, the SD card and the buzzer. Centre: the ESP32-S3. Right: keypad, LCD, RTC,
-the two door servos, break-glass button, granted LED and reader-select switch. Red = 3.3\,V,
-grey = ground.}
+the SD card and the buzzer. Centre: the ESP32-S3. Right, top: the entry and exit RFID readers
+(orange: SPI). Right, below: LCD, RTC, the two door servos, break-glass button and granted LED.
+Red = power, grey = ground.}
 \label{fig:wiring}
 \end{figure}
 
 \screenshot{wokwi}{The complete circuit running in the Wokwi simulator.}
   {Whole Wokwi canvas while the simulation runs (zoom out until every part is visible).}
 
-\screenshot[0.85\linewidth]{wokwi-entrance}{Entrance terminal: card buttons, reader-select switch,
-  door servos, keypad, LCD, buzzer, LED and break-glass button.}
-  {Zoom in on the right half: keypad, LCD, RTC, both servos, break-glass, LED, switch.}
+\screenshot[0.55\linewidth]{wokwi-entrance}{Entrance terminal: entry and exit RFID readers, LCD,
+  RTC, door servos, break-glass button and granted LED.}
+  {Zoom in on the right half: both readers, LCD, RTC, both servos, break-glass, LED.}
 
-\screenshot[0.85\linewidth]{wokwi-room}{A lecture-room terminal: PIR sensor, light sensor and lamp.
+\screenshot[0.8\linewidth]{wokwi-reader}{An RFID reader's control panel in Wokwi: pick a card,
+  then Tap or Hold it.}
+  {Click the ENTRY reader so its panel with the card list and the Tap / Hold controls is open.}
+
+\screenshot[0.7\linewidth]{wokwi-room}{A lecture-room terminal: PIR sensor, light sensor and lamp.
   The PIR and light-sensor controls are opened by clicking the part.}
   {Zoom in on Lecture Room 1 with the lamp ON and the LDR slider panel open.}
