@@ -1,0 +1,53 @@
+% ============================================================================
+\section{Building, Running and Demonstrating}
+\label{app:build}
+% ============================================================================
+
+\subsection{Build and run the firmware}
+\begin{lstlisting}[style=console]
+. C:\Espressif\tools\Microsoft.v6.0.3.PowerShell_profile.ps1   # activate ESP-IDF v6.0.3
+cd firmware
+idf.py set-target esp32s3        # first time only
+idf.py build
+\end{lstlisting}
+Then open \file{firmware/} in VS Code and run \textbf{Wokwi: Start Simulator} (it reads
+\file{wokwi.toml}). Click the serial monitor and type \code{help}. In the Wokwi canvas, keys
+\code{1}--\code{4} press the card buttons and \code{b} the break-glass button.
+
+\subsection{Other tasks (from the repository root)}
+\begin{lstlisting}[style=console]
+make test       # host unit tests (gcc, or the gcc:14 Docker image)
+make diagram    # regenerate firmware/diagram.json and the wiring figure
+make pdf        # build this report -> docs/report.pdf
+\end{lstlisting}
+
+\subsection{Demonstration script}
+The defaults are 07:00--22:00, Monday to Saturday. Run during those hours, with the reader
+switch on the left (IN):
+
+\begin{lstlisting}[style=console]
+status                          # overview
+<press 1>                       # Alice enters             -> Welcome Alice, entry door opens
+<press 1>                       # again at IN              -> DENIED ANTI_PASSBACK
+<switch right (OUT), press 1>   # Alice leaves             -> Goodbye Alice, exit door opens
+tap DEADBEEF in                 # unregistered card        -> DENIED UNKNOWN_CARD
+<Room 1: LDR below 150 lux, click PIR>   # occupied + dark -> lamp 100 %, LCD "R1 100% P-"
+<wait about 20 s>               # dims to 30 %, then off at 30 s
+<LDR above 400 lux, click PIR>  # bright                   -> lamp stays off, LCD shows S
+<switch left (IN), press 2, 3>  # Bob and Carol enter
+login                           # then press 4 (admin card), then:
+login 1234
+schedule set 07:00 08:00 all    # a window that has already ended today -> SHUT
+<switch right (OUT), press 2>   # Bob refused: OUTSIDE_HOURS + ALERT AFTER_HOURS_EXIT
+<press 3>                       # Carol (security) leaves  -> escort window opens for 60 s
+<press 2>                       # Bob leaves               -> OK_ESCORT
+node 2 offline                  # 15 s later: ALERT NODE_OFFLINE, LCD "R2 offline"
+node 2 online
+<press b>                       # break glass: both doors open, alarm, EMRG
+emergency clear
+schedule set 07:00 22:00 mon-sat
+who
+log tail 20
+log verify                      # OK: hash chain intact
+\end{lstlisting}
+Keypad alternative for the login: press \code{A}, press key \code{4}, type \code{1234}.

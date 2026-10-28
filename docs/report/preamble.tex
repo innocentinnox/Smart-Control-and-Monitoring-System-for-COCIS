@@ -1,0 +1,84 @@
+% ============================================================================
+%  Preamble for the CoCIS Smart Control & Monitoring System report.
+%  Compiles with plain pdflatex (no -shell-escape): `make pdf` from the repo root.
+% ============================================================================
+
+% ---- page & fonts -----------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\setlength{\headheight}{14pt}
+\setlength{\emergencystretch}{3em}     % avoid overfull lines around long \code{...}
+
+\usepackage{amsmath}
+
+% ---- tables, figures, diagrams ---------------------------------------------
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs,tabularx,longtable,multirow,array}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,backgrounds}
+\tikzset{
+  box/.style   ={draw,rounded corners=2pt,align=center,font=\small,inner sep=4pt,fill=white},
+  task/.style  ={box,fill=blue!6},
+  pure/.style  ={box,fill=green!8,dashed},
+  hw/.style    ={box,fill=gray!12},
+  state/.style ={draw,rounded corners=6pt,minimum width=24mm,minimum height=9mm,align=center,font=\small,fill=blue!6},
+  arr/.style   ={-{Latex[length=2mm]},thick},
+  lbl/.style   ={font=\footnotesize,align=center,fill=white,inner sep=1pt}
+}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+% ---- lists, code, colour, links --------------------------------------------
+\usepackage{enumitem}
+\setlist{itemsep=0.15em,topsep=0.3em}
+\usepackage[table]{xcolor}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small, columns=fullflexible, breaklines=true,
+        frame=single, keywordstyle=\color{blue!60!black}, commentstyle=\color{green!40!black},
+        language=C, showstringspaces=false, upquote=true}
+\lstdefinestyle{console}{language={}, basicstyle=\ttfamily\footnotesize, frame=single,
+                         columns=fixed, keepspaces=true, basewidth=0.5em}
+\usepackage{csquotes}
+\usepackage{url}
+
+% ---- small helpers ----------------------------------------------------------
+% \code{...}   inline identifier / command, underscores allowed: \code{access_decide()}
+% \file{...}   a path in the repository, breaks at / and _: \file{firmware/components/bus/bus.c}
+% \todo{...}   red placeholder; must be gone before submission
+\DeclareRobustCommand{\code}[1]{\texttt{\detokenize{#1}}}
+\DeclareUrlCommand\file{\urlstyle{tt}}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\req}[1]{\textbf{R#1}}     % brief requirement, e.g. \req{2.6}
+
+% \screenshot[width]{file}{caption}{what to capture}
+%   Shows figures/<file>.png if it exists; otherwise a red box saying what to capture,
+%   so a missing screenshot is obvious in the PDF but never breaks the build.
+\newcommand{\screenshot}[4][\linewidth]{%
+  \begin{figure}[H]
+  \centering
+  \IfFileExists{figures/#2.png}{\includegraphics[width=#1,height=0.42\textheight,keepaspectratio]{#2.png}}{%
+    \fcolorbox{red}{red!4}{\parbox{0.9\linewidth}{\centering\vspace{1.5em}
+      \textcolor{red}{\textbf{Screenshot needed:} \texttt{docs/report/figures/#2.png}}\\[0.4em]
+      \small\detokenize{#4}\vspace{1.5em}}}}
+  \caption{#3}
+  \label{fig:#2}
+  \end{figure}}
+
+% ---- section styling --------------------------------------------------------
+\usepackage{titlesec}
+\titleformat{\section}{\newpage\LARGE\bfseries}{\thesection}{0.6em}{}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+
+% hyperref last, as it patches sectioning commands
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink]{cleveref}

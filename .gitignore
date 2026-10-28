@@ -1,0 +1,14 @@
+# --- LaTeX build artefacts (docs/report/build/ holds everything pdflatex/latexmk produces) ---
+docs/report/build/
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+desktop.ini

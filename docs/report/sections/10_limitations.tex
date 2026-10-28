@@ -1,0 +1,34 @@
+% ============================================================================
+\section{Limitations and Future Work}
+\label{sec:limitations}
+% ============================================================================
+
+\subsection{Known limitations}
+\begin{itemize}
+  \item \textbf{One board simulates three terminals} (\cref{sec:one-board}). The terminals are
+        isolated and talk only through the bus, but a separate-board transport (ESP-NOW or Wi-Fi)
+        has not been implemented.
+  \item \textbf{RFID is simulated} with buttons, because Wokwi has no RFID reader part; only
+        \file{rfid.c} would change for a real reader.
+  \item \textbf{The device does not send events to the dashboard yet.} The dashboard and its
+        ingest API are tested on their own, with sample events.
+  \item \textbf{Truncation of the newest log lines} cannot be detected by the hash chain on its
+        own; an off-device copy (the dashboard) would cover that.
+  \item \textbf{A few edge cases are not yet handled}, found while reviewing the code:
+        \begin{itemize}
+          \item pressing \code{A} during an admin session silently starts a new login;
+          \item a card tapped after the login card step timed out shows ``Not an admin card'';
+          \item a full occupancy ledger (64 people) does not record the next entry.
+        \end{itemize}
+\end{itemize}
+
+\subsection{Future work}
+\begin{itemize}
+  \item Split the terminals onto three ESP32 boards using ESP-NOW for the same bus messages.
+  \item A device-side sync task: Wi-Fi, a signed batch upload, and an upload cursor kept on the SD
+        card so nothing is lost while offline.
+  \item A local web page served by the hub over Wi-Fi.
+  \item A closing-time warning on the LCD and buzzer 15 minutes before closing (the function
+        \code{schedule_minutes_to_close()} is already written and tested).
+  \item A real RFID reader (MFRC522) behind the existing \file{rfid.h} interface.
+\end{itemize}

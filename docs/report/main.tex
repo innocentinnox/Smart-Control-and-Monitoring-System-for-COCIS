@@ -1,0 +1,60 @@
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+\input{team}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{CoCIS Smart Control \& Monitoring System}
+\rhead{\groupname}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+% ---------------------------------------------------------------- title page
+\begin{titlepage}
+  \centering
+  {\large Makerere University\par}
+  {\large College of Computing and Information Sciences\par}
+  \vspace{0.4em}
+  {\large \coursename\par}
+  \vspace{3em}
+  {\Huge\bfseries Smart Control and Monitoring\\[0.2em] System for CoCIS\par}
+  \vspace{0.8em}
+  {\large System Operation Report\par}
+  \vspace{0.4em}
+  {\normalsize ESP32-S3 \,$\cdot$\, ESP-IDF v6.0 \,$\cdot$\, FreeRTOS \,$\cdot$\, Wokwi\par}
+  \vspace{3em}
+  {\Large\bfseries \groupname\par}
+  \vspace{1em}
+  \small\teamtable
+  \vfill
+  \normalsize
+  \begin{tabular}{rl}
+    Wokwi simulation: & \wokwilink \\
+  \end{tabular}
+  \vspace{2em}
+
+  {\large \today\par}
+\end{titlepage}
+
+\tableofcontents
+
+% ------------------------------------------------------------------ sections
+\input{sections/01_introduction}
+\input{sections/02_requirements}
+\input{sections/03_architecture}
+\input{sections/04_hardware}
+\input{sections/05_software}
+\input{sections/06_operation}
+\input{sections/07_synchronisation}
+\input{sections/08_innovation}
+\input{sections/09_testing}
+\input{sections/10_limitations}
+\input{sections/11_members}
+
+\appendix
+\input{sections/A_cli_reference}
+\input{sections/B_build_and_demo}
+
+\end{document}

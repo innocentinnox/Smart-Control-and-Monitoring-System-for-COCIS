@@ -1,0 +1,67 @@
+% ============================================================================
+\section{Synchronisation and Reliability}
+\label{sec:sync}
+% ============================================================================
+
+Several tasks run at the same time and some resources are shared, so \req{2.7} is met with a small
+set of rules, each tied to a specific risk.
+
+\subsection{Design rules}
+\begin{enumerate}
+  \item \textbf{One writer per record.} Only the hub task decides access and changes the occupancy
+        ledger; card scans from any source are \emph{queued} to it and processed one at a time.
+        Two people scanning at once can never produce an inconsistent ledger.
+  \item \textbf{One owner per device.} Only the storage task touches the SD card, and only the ui
+        task touches the LCD. Other tasks send requests through queues.
+  \item \textbf{One mutex per shared module.} Users, config, occupancy, auth, the light-sensor ADC
+        and the hub status each have their own lock, held only for a quick copy. Readers (CLI, LCD)
+        get a copy, never a pointer into live data.
+  \item \textbf{Interrupts never block.} They only queue an event or notify a task.
+\end{enumerate}
+
+\subsection{Shared resources and how each is protected}
+{\small
+\begin{longtable}{@{}p{0.2\linewidth}p{0.33\linewidth}p{0.4\linewidth}@{}}
+\toprule
+Resource & Risk without protection & Mechanism \\
+\midrule
+\endhead
+Access decisions and ledger & Two scans decided at once give a wrong ``who is inside'' &
+  Single writer: the hub task, fed by its inbox queue. \\
+SD card (SPI + FAT) & Interleaved writes corrupt files or mix lines & Gatekeeper task. Log
+  requests are queued; \code{log tail} and \code{log verify} are requests answered through a
+  semaphore. \\
+Log sequence numbers & Gaps or duplicates & Assigned only by the gatekeeper; resumed from the last
+  line on the card after a reboot. \\
+Bus sequence numbers & Two tasks sending as the same node (e.g.\ the buttons task and the CLI's
+  \code{tap}) could enqueue seq 11 before seq 10, which the receiver would drop as stale & A
+  per-sender mutex makes ``take next seq + enqueue'' one step. \emph{We found this race in code
+  review and fixed it.} \\
+Duplicated or replayed messages & Processed twice & The receiver drops any seq not newer than the
+  last one from that sender. \\
+Users, config, occupancy, auth & A reader sees a half-finished update & One mutex per module;
+  copies out. \\
+Config in flash vs.\ in RAM & Power cut after the change but before the save & Saved to NVS first
+  (atomic commit), then made live. \\
+ADC unit shared by both rooms & Interleaved conversions give wrong readings & Mutex in
+  \file{light_sensor.c}. \\
+I2C bus (LCD + RTC) & Mixed transactions & ESP-IDF's I2C master bus lock per transaction. \\
+Door close timer vs.\ a new open & Door closes on the next person & The timer restarts on every
+  open. \\
+Admin login & Late answers or races between keypad and CLI & One state machine behind a mutex;
+  deadlines are checked with wrap-safe time arithmetic. \\
+Power loss & Half-written state & Atomic NVS commits; each log line \code{fsync}ed; ledger saved on
+  every change. \\
+Room node failure & Lights uncontrolled without anyone knowing & Heartbeats and an offline alert;
+  rooms run independently of the hub. \\
+SD card missing & All records lost & RAM ring buffer and \code{ALERT code=SD_FAIL}. \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Coordination between terminals}
+The terminals coordinate only through bus messages (\cref{sec:sw-bus}). A room never waits for the
+hub: if a send fails, the room keeps its lights correct and tries again with the next report. The
+hub never waits for a room either; it uses the latest state each room reported and marks a room
+offline when its heartbeats stop. This is the same failure model that three separate boards would
+have.

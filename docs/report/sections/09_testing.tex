@@ -1,0 +1,81 @@
+% ============================================================================
+\section{Testing}
+\label{sec:testing}
+% ============================================================================
+
+\subsection{Unit tests of the decision logic}
+\file{firmware/test/host/test_core_logic.c} compiles the pure \code{core_logic} and the type
+helpers with the PC's gcc (or a gcc Docker image) using \code{-Wall -Wextra -Werror}, and checks
+them against expected results. Run it with \code{make test}.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+Group & What it proves \\
+\midrule
+Schedule & Opening and closing edges, closed weekdays, overnight windows, minutes to close,
+  invalid schedules rejected. \\
+Access policy & Every rule in order: unknown, disabled, anti-passback both ways, lockdown,
+  in hours, privileged after hours, escort exit, after-hours refusal. \\
+Room logic & Occupancy and grace period, dim warning, daylight thresholds and hysteresis, manual
+  ON/OFF override, energy used/saved, the daylight change flag. \\
+Admin login & Happy path, non-admin card, wrong PIN, lockout after 3 failures and its expiry,
+  step timeouts, late answers, session expiry, millisecond-counter wrap-around. \\
+Types & Parsing of role names and card UIDs, including invalid input. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{Result: 70 checks, 0 failures.}
+
+\subsection{Build}
+\code{idf.py build} for the ESP32-S3 with ESP-IDF~v6.0.3 completes with \textbf{0 warnings}. The
+application image is 0x628C0 bytes (about 395\,KB), leaving 74\,\% of the application partition
+free.
+
+\subsection{Simulation testing in Wokwi}
+The system was run in the Wokwi simulator through VS Code. Observed results:
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+Scenario & Result \\
+\midrule
+Boot & RTC time read, SD card mounted, SHA-256 self-test passed, 4 demo cards seeded, both
+  rooms reported online. \\
+Card scans & Alice, Bob and Carol entered and were logged as \code{ACCESS ... ok=1 reason=OK}. \\
+Reboot & The log resumed after the last sequence number; the ledger reported
+  \enquote{2 people inside at boot}. \\
+Admin login & Card then PIN gave \code{AUTH result=CARD_OK} followed by \code{result=OK}. \\
+Light sensor & Moving the slider below 150\,lux logged \code{ROOM ... daylight=0}; above 400\,lux
+  \code{daylight=1}. \\
+Energy & \code{ENERGY} lines appeared every 10 minutes for both rooms. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Defects found and fixed}
+Testing in the simulator and code review found real bugs, which were fixed:
+\begin{itemize}
+  \item \textbf{Crash loop when a lamp faded on.} The ESP32's hardware LED-fade interrupt fired
+        endlessly in Wokwi and tripped the interrupt watchdog. Because a software reset does not
+        clear that peripheral, every reboot crashed again. The backtrace pointed to
+        \code{ledc_fade_isr}; we removed the hardware fade and fade the lamp in software from the
+        room task instead.
+  \item \textbf{Bus ordering race} (\cref{sec:sync}): fixed with a per-sender mutex.
+  \item \textbf{PIN entry}: the PIN was made exactly 4 digits with automatic submit, and a keypad
+        repeat guard stopped a single press being counted twice.
+  \item \textbf{LCD overflow}: every row is now formatted to exactly 20 characters.
+  \item \textbf{Late PIN after a timeout} was accepted by mistake; the state machine now checks
+        expiry first, and a unit test covers it.
+\end{itemize}
+
+\subsection{Dashboard}
+\code{prisma validate}, the TypeScript check and \code{next build} pass. Against a local
+PostgreSQL 16 database, the sample sender inserted 18 events, then 18 duplicates on a second run
+(idempotent). A bad signature and a stale timestamp were rejected with HTTP 401, and a malformed
+body with HTTP 400.
+
+\todo{after the final demo run, add any further scenarios tested (schedule change, after-hours
+exit and escort, break-glass, node offline, log verify)}

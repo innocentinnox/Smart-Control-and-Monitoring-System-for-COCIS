@@ -1,0 +1,61 @@
+% ============================================================================
+\section{Requirements and How They Are Met}
+\label{sec:requirements}
+% ============================================================================
+
+\Cref{tab:trace} traces every requirement in the brief to the feature that meets it and to the
+section of this report that explains it.
+
+{\small
+\begin{longtable}{@{}p{0.07\linewidth}p{0.27\linewidth}p{0.48\linewidth}p{0.10\linewidth}@{}}
+\caption{Requirements traceability.}\label{tab:trace}\\
+\toprule
+Brief & Requirement & Implementation & Report \\
+\midrule
+\endfirsthead
+\toprule
+Brief & Requirement & Implementation & Report \\
+\midrule
+\endhead
+\req{2.1} & Separate entry and exit points; RFID scan at both & Two readers (IN and OUT), each
+  with its own servo door. Card $\rightarrow$ \code{access_decide()} $\rightarrow$ door opens for
+  3\,s. & \ref{sec:op-access} \\
+\req{2.1} & Verify identity, open the right door & User registry in NVS (UID, name, role,
+  enabled). Only the door on the scanned side opens. & \ref{sec:op-access} \\
+\req{2.1} & Records of entry and exit; who is inside now & Every scan is an \code{ACCESS} log
+  line. The occupancy ledger (persisted) answers \code{who}. & \ref{sec:op-access},
+  \ref{sec:op-cli} \\
+\req{2.2} & Detect room occupancy and control the lights & PIR + 30\,s grace timer, 10\,s dim
+  warning, daylight cut-off with hysteresis, PWM lamp. & \ref{sec:op-lighting} \\
+\req{2.2} & Reduce wasted electricity & Lamp off when vacant or bright. Energy used and saved per
+  room logged every 10\,min. & \ref{sec:op-lighting} \\
+\req{2.3} & Three terminals (Room 1, Room 2, Entrance) & Three independent terminal programs (hub
+  task, two room-node tasks) that share no variables. & \ref{sec:arch} \\
+\req{2.3} & Effective communication and coordination & Message bus with per-sender sequence
+  numbers, duplicate rejection, heartbeats and offline detection. & \ref{sec:sw-bus},
+  \ref{sec:sync} \\
+\req{2.4} & SD card storage & One file per day, \file{/sdcard/LOGS/YYYYMMDD.LOG}, hash-chained,
+  \code{fsync} after every line, RAM fallback. & \ref{sec:op-storage} \\
+\req{2.5} & Serial menus and commands & 15 commands: monitoring (\code{status}, \code{who},
+  \code{rooms}, \code{users}, \code{log}), configuration and simulation. & \ref{sec:op-cli},
+  App.~\ref{app:cli} \\
+\req{2.5} & Additional output interfaces & 20$\times$4 LCD, buzzer patterns, green LED. &
+  \ref{sec:op-ui} \\
+\req{2.6} & Configurable access period & \code{schedule set HH:MM HH:MM [days]}, overnight
+  windows supported, stored in NVS. & \ref{sec:op-schedule} \\
+\req{2.6} & Restrict entry \emph{and exit} outside hours & Ordinary users cannot enter or leave
+  after hours; an alert calls security, who can escort them out. Break-glass overrides everything
+  for safety. & \ref{sec:op-access} \\
+\req{2.6} & Only authenticated, authorised personnel may change it & Two-factor login: admin
+  card + 4-digit PIN, 5-minute session, lockout after 3 wrong PINs. & \ref{sec:op-auth} \\
+\req{2.7} & Synchronisation; no conflicts, inconsistent records or races & Single-writer hub,
+  storage gatekeeper task, one mutex per shared module, atomic NVS commits, ordered bus. &
+  \ref{sec:sync} \\
+\req{2.7} & Accurate records, reliable coordination & Hash chain + \code{log verify}; log
+  sequence resumes after reboot; node heartbeats. & \ref{sec:op-storage}, \ref{sec:sync} \\
+\req{3} & Innovation & Tamper-evident log, daylight harvesting, energy accounting, 2FA,
+  escort window, break-glass, lockdown, generated wiring, host unit tests, optional cloud
+  dashboard. & \ref{sec:innovation} \\
+\bottomrule
+\end{longtable}
+}

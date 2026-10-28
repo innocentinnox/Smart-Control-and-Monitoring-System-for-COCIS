@@ -1,0 +1,75 @@
+% ============================================================================
+\section{Innovation and Additional Features}
+\label{sec:innovation}
+% ============================================================================
+
+The brief places particular emphasis on innovation. Beyond the core requirements, the system adds
+the following, grouped by the goal named in the brief.
+
+\subsection{Security}
+\begin{itemize}
+  \item \textbf{Tamper-evident log.} Every SD line is chained with SHA-256; \code{log verify}
+        proves that no record was edited, inserted or deleted (\cref{sec:op-storage}).
+  \item \textbf{Two-factor admin login} (card + PIN) with salted PIN hashes, 3-attempt lockout,
+        30\,s step timeouts and a 5-minute session (\cref{sec:op-auth}).
+  \item \textbf{Anti-passback}, so one card cannot be used by two people.
+  \item \textbf{Lockdown mode}: only security and admin may pass.
+  \item \textbf{Replay protection} on the bus: duplicated or replayed messages are dropped.
+  \item \textbf{Boot self-test} of SHA-256 against the standard test vector.
+\end{itemize}
+
+\subsection{Efficiency}
+\begin{itemize}
+  \item \textbf{Daylight harvesting with hysteresis}: lights stay off in a bright room even when it
+        is occupied.
+  \item \textbf{Energy accounting}: energy used and saved per room, logged every 10 minutes, so
+        management can see what the system saves.
+  \item \textbf{Pre-off dim warning} and soft fades: lights dim before turning off, so occupants
+        are never left in the dark.
+\end{itemize}
+
+\subsection{Reliability and safety}
+\begin{itemize}
+  \item \textbf{Break-glass override} and the \textbf{security escort window}: after-hours
+        rules never trap anyone in an emergency, and every exit is still recorded.
+  \item \textbf{After-hours exit alert}: security is told when someone is waiting to leave.
+  \item \textbf{Node heartbeats} with offline and online alerts.
+  \item \textbf{Graceful degradation}: no SD card $\rightarrow$ RAM log; no RTC $\rightarrow$ build
+        time; hub down $\rightarrow$ rooms keep working.
+  \item \textbf{Persistence}: users, schedule, lockdown and the occupancy ledger survive reboots.
+\end{itemize}
+
+\subsection{Usefulness to management}
+\begin{itemize}
+  \item A muster list (\code{who}) with entry times for evacuations.
+  \item A live event monitor on the console (\code{log echo on}).
+  \item A clear LCD summary: building state, people inside and every room's status at a glance.
+\end{itemize}
+
+\subsection{Engineering quality}
+\begin{itemize}
+  \item \textbf{Unit-tested decision logic} on a PC (70 checks), so the rules are proven before
+        they run on the board (\cref{sec:testing}).
+  \item \textbf{Generated, self-checking wiring diagram} from the pin map, so the circuit and the
+        code can never disagree (\cref{sec:hardware}).
+  \item \textbf{Tunable without code changes}: all timings and thresholds are \code{menuconfig}
+        options.
+\end{itemize}
+
+\subsection{Optional cloud dashboard (prepared extension)}
+\file{dashboard/} contains a Next.js web application with a PostgreSQL database (Prisma ORM,
+intended for Vercel and Neon). It receives the same events as the SD log through
+\code{POST /api/ingest}:
+\begin{itemize}
+  \item Requests are authenticated with an HMAC-SHA256 signature and a timestamp; stale or forged
+        requests are rejected.
+  \item Ingest is idempotent: each (device, sequence number) pair is stored once, so a re-sent
+        batch creates no duplicates.
+  \item Pages show the people inside, room status, alerts, a filterable access log and energy
+        saved.
+\end{itemize}
+\screenshot{dashboard}{Dashboard overview page with sample events: people inside, rooms and alerts.}
+  {Browser at http://localhost:3000 after `npm run dev` and the sample sender (dashboard/README.md).}
+
+It was tested end to end with a script that sends signed sample events. The firmware does
+\emph{not} yet send events to it (\cref{sec:limitations}), and the system never depends on it.

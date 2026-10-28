@@ -1,0 +1,9 @@
+# latexmk configuration: run `latexmk` inside docs/report/ (or `make pdf-watch` from the repo root)
+#   -> docs/report.pdf          final PDF
+#   -> docs/report/build/       aux/log files (git-ignored)
+$pdf_mode = 1;            # pdflatex
+$jobname  = 'report';
+$out_dir  = '..';          # report.pdf goes to docs/
+$aux_dir  = 'build';
+@default_files = ('main.tex');
+$pdflatex = 'pdflatex -interaction=nonstopmode -file-line-error -synctex=1 %O %S';

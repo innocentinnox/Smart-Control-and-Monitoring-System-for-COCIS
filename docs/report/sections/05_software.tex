@@ -1,0 +1,154 @@
+% ============================================================================
+\section{Software Design}
+\label{sec:software}
+% ============================================================================
+
+\subsection{Toolchain and project layout}
+The firmware is an ESP-IDF~v6.0.3 project for the ESP32-S3 (\file{firmware/}), written in C11. It
+builds with no warnings and uses about 26\,\% of the application partition.
+
+\begin{lstlisting}[style=console]
+firmware/
+  main/              main.c (boot order), Kconfig.projbuild (tunable settings)
+  components/
+    common/          types, pin map, task table, SHA-256
+    core_logic/      access_policy, room_logic, auth_fsm   <- pure, unit tested
+    drivers/         i2c_bus, lcd2004, ds1307, keypad, buttons, pwm, actuators, light_sensor
+    bus/             messages between terminals
+    storage/         SD card gatekeeper + hash-chained log
+    services/        users, config, occupancy, auth, clock (+ nvs_store helper)
+    ui/              LCD, buzzer, LED task
+    nodes/           hub, hub_access, hub_keypad, room_node, door, rfid
+    cli/             serial menu: cmd_monitor, cmd_admin, cmd_sim
+  test/host/         PC unit tests for core_logic
+  tools/             gen_diagram.py (generates diagram.json)
+  diagram.json, wokwi.toml   Wokwi simulation
+\end{lstlisting}
+
+Every source file starts with a comment block that says what the module does and why, and every
+public function is documented with its parameters, return value and the tasks allowed to call it.
+
+\subsection{FreeRTOS tasks}
+\label{sec:sw-tasks}
+Work is divided into tasks so that a slow job (an SD write, a buzzer tone) never delays a fast
+one (a door opening). Stack sizes and priorities are kept together in
+\file{components/common/include/task_config.h}; a higher number is a higher priority.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}lccL@{}}
+\toprule
+Task & Prio & Stack & Job \\
+\midrule
+\code{keypad}  & 6 & 3\,KB & Scans the keypad after a column interrupt, debounces, sends \code{MSG_KEY}. \\
+\code{buttons} & 6 & 3\,KB & Debounces card and break-glass presses (interrupt $\rightarrow$ queue $\rightarrow$
+  task), sends \code{MSG_CARD_SCAN} / \code{MSG_BREAK_GLASS}. \\
+\code{hub}     & 5 & 6\,KB & Entrance terminal: access decisions, admin login, room supervision,
+  energy log. \\
+\code{room1}, \code{room2} & 4 & 4\,KB & Room terminals: sense every 200\,ms, decide the lamp
+  level, report to the hub. \\
+\code{storage} & 3 & 8\,KB & SD card gatekeeper: appends, tails and verifies the log. \\
+\code{ui}      & 2 & 4\,KB & Redraws the LCD every 500\,ms, plays sounds, times the LED. \\
+\code{cli}     & 1 & 8\,KB & Serial command menu (lowest priority: a human is typing). \\
+\bottomrule
+\end{tabularx}
+\end{center}
+The door auto-close uses one \code{esp_timer} per door (a callback, not a task).
+
+Input tasks have the highest priority so presses are never missed. The storage, UI and CLI tasks
+are below the terminals because they only consume results.
+
+\subsection{Boot sequence}
+\file{main/main.c} brings the system up in dependency order, so each step can use the ones before:
+\begin{enumerate}
+  \item NVS (flash storage), the I2C bus, and the clock (time from the DS1307 RTC, or the build
+        time as a fallback).
+  \item The storage task (mounts the SD card and resumes the log chain), then a SHA-256 self-test.
+        A failure is logged as \code{ALERT code=CRYPTO_FAIL}.
+  \item Shared state: users, configuration, occupancy ledger, auth.
+  \item The bus and the light sensor ADC.
+  \item The hub task, then room nodes 1 and 2.
+  \item A \code{BOOT} log line with the reset reason, then the serial CLI.
+\end{enumerate}
+
+\subsection{The node bus}
+\label{sec:sw-bus}
+\file{components/bus/} is how the terminals talk. Each node (\code{HUB}, \code{ROOM1},
+\code{ROOM2}) has an inbox, a FreeRTOS queue of 16 messages. A message is a tagged union:
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+Type & Direction & Payload \\
+\midrule
+\code{MSG_CARD_SCAN} & reader $\rightarrow$ hub & card UID, side (IN/OUT) \\
+\code{MSG_KEY} & keypad $\rightarrow$ hub & key character \\
+\code{MSG_BREAK_GLASS} & button $\rightarrow$ hub & -- \\
+\code{MSG_ROOM_STATE} & room $\rightarrow$ hub & occupied, daylight, level, lux, mode, energy used/saved \\
+\code{MSG_HEARTBEAT} & room $\rightarrow$ hub & uptime \\
+\code{MSG_LIGHT_CMD} & hub $\rightarrow$ room & light mode (AUTO, ON, OFF) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\code{bus_send()} stamps each message with its source and the next \textbf{sequence number} for
+that sender. \code{bus_recv()} remembers the last sequence number seen from each sender and drops
+any message that is not newer, so a duplicated or replayed frame is never processed twice. The
+number dropped is shown by \code{status}.
+
+\subsection{Pure decision logic (\code{core_logic})}
+The rules that matter most are plain C functions with no hardware access: they take a struct of
+facts and return a decision. This keeps the rules short, readable and testable on a PC
+(\cref{sec:testing}). The access policy is the clearest example:
+
+\begin{lstlisting}
+access_reason_t access_decide(const access_request_t *req)
+{
+    if (!req->known)   return ACCESS_UNKNOWN_CARD;
+    if (!req->enabled) return ACCESS_DISABLED;
+    if ((req->side == SIDE_IN && req->inside) || (req->side == SIDE_OUT && !req->inside))
+        return ACCESS_ANTI_PASSBACK;
+    bool privileged = role_is_privileged(req->role);      /* SECURITY or ADMIN */
+    if (req->lockdown)      return privileged ? ACCESS_OK_PRIVILEGED : ACCESS_LOCKDOWN;
+    if (req->schedule_open) return ACCESS_OK;
+    if (privileged)         return ACCESS_OK_PRIVILEGED;
+    if (req->side == SIDE_OUT && req->escort_active) return ACCESS_OK_ESCORT;
+    return ACCESS_OUTSIDE_HOURS;
+}
+\end{lstlisting}
+(Shown compacted; the real function in \file{access_policy.c} has the same logic.)
+\code{room_logic_step()} does the same for lighting (\cref{sec:op-lighting}) and
+\code{auth_fsm} for the admin login (\cref{sec:op-auth}).
+
+\subsection{Shared state services}
+Each module in \file{components/services/} owns one piece of shared state, guards it with its own
+mutex, hands out copies to readers, and saves it to NVS (the ESP32's key-value flash store) so
+it survives a reboot:
+\begin{itemize}
+  \item \code{users}: the card registry (UID, name, role, enabled, salted SHA-256 PIN hash). It is
+        versioned, so a changed layout re-seeds the four demo cards.
+  \item \code{config}: the access schedule and lockdown flag. A change is saved to NVS
+        \emph{before} it becomes live, so a power cut never leaves the two disagreeing.
+  \item \code{occupancy}: the ledger of who is inside, saved on every change.
+  \item \code{auth}: wraps the pure \code{auth_fsm} and writes every login result to the log.
+  \item \code{clock}: sets the system time from the DS1307 at boot (time zone EAT, UTC+3).
+\end{itemize}
+
+\subsection{Interrupts}
+Interrupt handlers do the minimum: they push the pin number to a queue or notify a task, and
+return. Debouncing, scanning and decisions happen in tasks. This keeps interrupts short and makes it
+safe to call any FreeRTOS or logging function from the code that handles the press.
+
+\subsection{Coding principles}
+\begin{itemize}
+  \item \textbf{Single source of truth.} Pins are only defined in \file{board_pins.h}, task settings
+        only in \file{task_config.h}, tunable behaviour only in \file{Kconfig.projbuild}, and each
+        enum and its string names only once, using X-macros in \file{cocis_types.h}.
+  \item \textbf{One way to do each thing.} All modules log through
+        \code{cocis_log(type, "k=v ...")}. One PWM layer drives servos, lamps and the buzzer. One
+        button driver handles cards and break-glass. One NVS blob helper is used by all persistent
+        modules.
+  \item \textbf{Separation of concerns.} Drivers know hardware, services know state, nodes combine
+        them, and \code{core_logic} knows only the rules.
+\end{itemize}

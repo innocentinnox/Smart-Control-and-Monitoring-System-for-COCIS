@@ -1,0 +1,51 @@
+% ============================================================================
+\section{Introduction}
+\label{sec:intro}
+% ============================================================================
+
+\subsection{Background and problem}
+The College of Computing and Information Sciences (CoCIS) keeps valuable equipment that must be
+protected from unauthorised access, and it pays high electricity bills, partly because lights are
+left on in empty rooms. In October 2026 management agreed to pilot an automated system on the
+\textbf{main entrance} and \textbf{two lecture rooms}.
+
+\subsection{What we built}
+A complete, self-contained control and monitoring system on the ESP32-S3, simulated in Wokwi and
+written in C with ESP-IDF~v6.0 and FreeRTOS:
+\begin{itemize}
+  \item \textbf{Entrance terminal.} RFID identification at separate entry and exit readers, servo
+        door locks, anti-passback, an opening-hours schedule that also holds people inside after
+        hours, an LCD, a buzzer, and a keypad for two-factor admin login (card + PIN).
+  \item \textbf{Two lecture-room terminals.} A PIR motion sensor and a light sensor per room drive a
+        dimmable lamp. Lights turn off when the room is empty or when there is enough daylight, and
+        the room reports the energy it used and saved.
+  \item \textbf{Storage and management.} Every event is written to the SD card as a
+        \emph{hash-chained} (tamper-evident) log line, and a serial command menu shows who is
+        inside, room status, lighting and the access log and lets an authenticated admin change
+        the schedule, users and overrides.
+\end{itemize}
+The system runs entirely offline. An \emph{optional} web dashboard (Next.js + PostgreSQL) was also
+prepared as an extension (\cref{sec:innovation}); the system does not depend on it.
+
+\subsection{How this report maps to the required deliverables}
+\begin{center}
+\begin{tabularx}{\linewidth}{lL}
+\toprule
+Deliverable (brief \S4) & Where \\
+\midrule
+1. System operation report & \Cref{sec:requirements} to \cref{sec:limitations}: architecture,
+   hardware, software design, operation of every feature, synchronisation, testing \\
+2. Wokwi simulation link & Title page and \cref{sec:members} \\
+3. Individual video demonstrations & \Cref{sec:videos} \\
+4. Individual contributions & \Cref{sec:contributions} \\
+5. Group member details & Title page and \cref{sec:members} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Conventions}
+Requirements from the brief are written \req{2.1} \ldots\ \req{2.7} (the brief's section numbers).
+Paths such as \file{components/core_logic/access_policy.c} are relative to \file{firmware/} unless
+they start with \file{dashboard/} or \file{docs/}. Default timings and thresholds quoted in this
+report are the values in \file{main/Kconfig.projbuild}; all of them can be changed with
+\code{idf.py menuconfig} without editing code.

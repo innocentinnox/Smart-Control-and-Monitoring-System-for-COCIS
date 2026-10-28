@@ -1,0 +1,133 @@
+% ============================================================================
+\section{System Architecture}
+\label{sec:arch}
+% ============================================================================
+
+\subsection{Three terminals, one authority}
+The brief asks for three control terminals: the main entrance, Lecture Room~1 and Lecture
+Room~2 (\req{2.3}). Each one is a separate program with its own inputs and outputs:
+
+\begin{description}[leftmargin=1.2em]
+  \item[Entrance terminal (the \emph{hub}).] Reads the RFID readers, the keypad and the
+        break-glass button, decides who may pass, drives the two door servos, the LCD, the buzzer
+        and the LED, and keeps the occupancy ledger. It is the \textbf{single authority}: it is the
+        only code that makes access decisions or changes who is inside.
+  \item[Room terminals (\emph{room nodes} 1 and 2).] Each reads its own PIR and light sensor,
+        decides its own lamp level and reports its state and a heartbeat to the hub. A room keeps
+        controlling its lights even if the hub stops.
+\end{description}
+
+The terminals share no variables. They exchange \textbf{messages only}, over the node
+\textbf{bus} (\cref{sec:sw-bus}). Two supporting tasks serve all terminals: the
+\textbf{storage gatekeeper}, the only code that touches the SD card, and the
+\textbf{serial CLI}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  % column x: inputs 0, hub 5.2, outputs 10.4 ; rows y top-down
+  \node[hw]   (pc)    at (0,   4.2) {Serial terminal};
+  \node[task] (cli)   at (5.2, 4.2) {\textbf{CLI task} (serial menu)};
+  \node[hw]   (cards) at (0,   2.0) {Card buttons\\+ reader switch};
+  \node[hw]   (keys)  at (0,   0.8) {4$\times$4 keypad};
+  \node[hw]   (glass) at (0,  -0.3) {Break-glass};
+  \node[task,minimum width=44mm,minimum height=30mm] (hub) at (5.2, 0.85)
+    {\textbf{HUB task}\\(entrance, single authority)\\[2pt]
+     \footnotesize access\_policy (pure)\\ \footnotesize auth\_fsm (pure)\\
+     \footnotesize occupancy ledger};
+  \node[hw]   (door)  at (10.4, 2.0) {2 door servos};
+  \node[task] (ui)    at (10.4, 0.8) {\textbf{ui task}\\\footnotesize LCD, buzzer, LED};
+  \node[task] (sto)   at (10.4,-1.9) {\textbf{STORAGE task}\\\footnotesize owns the SD card\\\footnotesize hash chain};
+  \node[hw]   (sd)    at (10.4,-3.6) {microSD};
+  \node[task] (r1)    at (2.9, -2.9) {\textbf{ROOM 1 task}\\\footnotesize room\_logic (pure)};
+  \node[task] (r2)    at (7.0, -2.9) {\textbf{ROOM 2 task}\\\footnotesize room\_logic (pure)};
+  \node[hw]   (r1hw)  at (2.9, -4.3) {PIR, LDR, lamp};
+  \node[hw]   (r2hw)  at (7.0, -4.3) {PIR, LDR, lamp};
+
+  \draw[arr,<->] (pc) -- (cli);
+  \draw[arr,dashed] (cli) -- node[lbl,right]{reads services, sends commands} (hub);
+  \draw[arr] (cards) -- node[lbl,above]{scan} (hub.west |- cards);
+  \draw[arr] (keys)  -- node[lbl,above]{key} (hub.west |- keys);
+  \draw[arr] (glass) -- (hub.west |- glass);
+  \draw[arr] (hub.east |- door) -- (door);
+  \draw[arr] (hub.east |- ui) -- (ui);
+  \draw[arr,<->] (r1) -- node[lbl,left]{bus} (hub.south -| r1);
+  \draw[arr,<->] (r2) -- node[lbl,right]{bus} (hub.south -| r2);
+  \draw[arr,<->] (r1) -- (r1hw);
+  \draw[arr,<->] (r2) -- (r2hw);
+  \draw[arr,dashed] (hub.south east) -- node[lbl,sloped,above]{cocis\_log()} (sto.north west);
+  \draw[arr] (sto) -- (sd);
+\end{tikzpicture}
+\caption{Runtime architecture. Blue boxes are FreeRTOS tasks, grey boxes are hardware. Solid arrows
+between tasks are bus messages; every task logs through \code{cocis_log()}, which queues the line
+to the storage task.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Why one ESP32 board simulates the three terminals}
+\label{sec:one-board}
+The brief says each terminal \emph{may} use a separate ESP32 (\req{2.3}); it does not require it.
+We run all three terminals on \textbf{one ESP32-S3} in Wokwi, built so that splitting them onto three
+boards later changes only the transport:
+\begin{enumerate}
+  \item \textbf{Isolation is real, not cosmetic.} Each terminal is its own FreeRTOS task with its own
+        pins and state. Room nodes never call hub functions and the hub never reads room variables;
+        everything passes through \code{bus_send()} / \code{bus_recv()}.
+  \item \textbf{The bus behaves like a network.} Messages carry a source id and a per-sender
+        sequence number; the receiver drops duplicates and stale frames, the hub detects silent
+        nodes by missing heartbeats, and a room can be ``unplugged'' with \code{node 2 offline} to
+        demonstrate failure handling (\cref{sec:sync}).
+  \item \textbf{Simulation practicality.} A single Wokwi project shows the whole building at once
+        in one simulator, which makes the demonstration and the shared link reliable.
+\end{enumerate}
+On three physical boards, the queue transport in \file{components/bus/bus.c} would be replaced by
+ESP-NOW or Wi-Fi frames carrying the same \code{bus_msg_t} structure; the terminal code above it
+stays the same. This replacement transport is \emph{designed but not implemented}
+(\cref{sec:limitations}).
+
+\subsection{Layered components}
+The firmware is split into ESP-IDF components with one concern each. Dependencies only point
+downward, so lower layers never know about higher ones.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[layer/.style={box,minimum height=11mm,text width=#1,align=center}]
+  % 3 columns of 34 mm, 3 mm gaps: centres at 0, 37, 74 mm; full width 108 mm
+  \node[layer=104mm] at (37mm, 0)       {\textbf{main}: boot order};
+  \node[layer=67mm]  at (18.5mm,-16mm)  {\textbf{nodes}: hub, rooms, door, rfid};
+  \node[layer=30mm]  at (74mm, -16mm)   {\textbf{cli}: serial menu};
+  \node[layer=30mm]  at (0,    -32mm)   {\textbf{ui}: LCD, sounds};
+  \node[layer=30mm]  at (37mm, -32mm)   {\textbf{services}: users, config, occupancy, auth, clock};
+  \node[layer=30mm]  at (74mm, -32mm)   {\textbf{bus}: node messages};
+  \node[layer=30mm]  at (0,    -48mm)   {\textbf{drivers}: I2C, LCD, RTC, keypad, PWM, ADC};
+  \node[layer=30mm]  at (37mm, -48mm)   {\textbf{storage}: SD gatekeeper, log};
+  \node[layer=30mm,pure] at (74mm,-48mm){\textbf{core\_logic}: pure rules (unit tested)};
+  \node[layer=104mm] at (37mm, -64mm)   {\textbf{common}: types, pin map, task table, SHA-256};
+\end{tikzpicture}
+\caption{Component layers (\code{firmware/components/}). The dashed box has no ESP-IDF calls, so it
+compiles and is tested on a PC.}
+\label{fig:layers}
+\end{figure}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+Component & Responsibility \\
+\midrule
+\code{common} & Shared enums (declared once with X-macros, which also generate their string
+  tables), the pin map \file{board_pins.h}, the task table \file{task_config.h}, SHA-256. \\
+\code{core_logic} & \textbf{Pure decision logic}: access rules, room lighting, admin two-factor state
+  machine. No hardware, no RTOS, so it is unit-tested on a PC. \\
+\code{drivers} & Thin hardware drivers: I2C bus, LCD2004, DS1307 RTC, keypad, buttons, PWM (servo,
+  lamp, buzzer), light sensor. \\
+\code{bus} & Messages between terminals with sequence numbers and duplicate rejection. \\
+\code{storage} & The SD card gatekeeper task and the hash-chained log. \\
+\code{services} & Shared state, each module behind its own mutex and persisted in NVS: users,
+  config (schedule, lockdown), occupancy ledger, auth session, clock. \\
+\code{ui} & The task that owns the LCD, buzzer and green LED. \\
+\code{nodes} & The three terminals (hub, two rooms), the door servos and the RFID front end. \\
+\code{cli} & The serial management menu (\code{esp_console}). \\
+\bottomrule
+\end{tabularx}
+\end{center}
