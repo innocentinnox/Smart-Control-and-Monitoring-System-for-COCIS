@@ -1,6 +1,6 @@
 # CoCIS Smart Control: cloud dashboard
 
-Next.js (App Router) + Prisma + Neon Postgres, deployable to Vercel. Receives the hub's signed
+Next.js 16 (App Router) + Prisma 7 + Neon Postgres, deployable to Vercel. Receives the hub's signed
 event batches on `POST /api/ingest` and shows who is inside, room state, alerts, the access log
 and per-room energy. The binding contract is [`../docs/event-schema.md`](../docs/event-schema.md).
 
@@ -13,32 +13,32 @@ app/
   layout.tsx            nav + 5 s auto-refresh
 components/             AutoRefresh (router.refresh), small UI pieces
 lib/
-  db.ts                 Prisma client singleton
+  db.ts                 Prisma client (node-postgres driver adapter), one per process
+  generated/prisma/     generated Prisma client (git-ignored, made by `prisma generate`)
   hmac.ts               signature + timestamp checks
   ingest.ts             zod batch schema, idempotent insert, projections
   queries.ts            read queries used by the pages
   time.ts               EAT <-> UTC
-prisma/schema.prisma    Event (raw log) + typed tables + Day-2 ScheduleConfig/Command
+prisma.config.ts        Prisma 7 config: schema, migrations, seed, CLI connection
+prisma/schema.prisma    Event (raw log) + typed tables (access, rooms, lights, energy, alerts)
+prisma/migrations/      SQL migrations, applied with `npm run db:migrate`
 prisma/seed.ts          registers device hub-01
 scripts/send-sample.mjs signs and POSTs a sample batch
 ```
 
 ## Setup
 
-1. `npm install`
-2. Create a Neon project, then copy `.env.example` to `.env` and fill in
-   - `DATABASE_URL`: the **pooled** connection string (host contains `-pooler`)
-   - `DIRECT_URL`: the **direct** connection string (used by Prisma for schema changes)
-   - `DEVICE_SECRET`: the HMAC key for `hub-01`; must equal the one in the firmware.
-
-   For a local Postgres, set both URLs to the same value, e.g.
-   `postgresql://postgres:dev@localhost:5433/postgres`.
-3. Create the tables: `npx prisma db push` (quick, Day 1), or
-   `npx prisma migrate dev --name init` to start keeping migrations, then
-   `npx prisma migrate deploy` in CI/production.
-4. Seed the device: `npx prisma db seed`
+1. `npm install` (also runs `prisma generate`). npm 11 asks before running package install
+   scripts; the ones Prisma and tsx need are already approved under `allowScripts` in
+   `package.json`.
+2. Copy `.env.example` to `.env` and set `DATABASE_URL` to Neon's **pooled** string and
+   `DEVICE_SECRET` to a random value (the command is in `.env.example`). Prisma 7 reads `.env`
+   through `prisma.config.ts`; migrations go over the direct (non-pooler) host, derived
+   automatically or taken from `DATABASE_URL_UNPOOLED`.
+3. Create the tables: `npm run db:migrate` (`prisma migrate deploy`, no shadow database needed).
+4. Seed the device: `npm run db:seed`
 5. Run: `npm run dev`, then open http://localhost:3000
-6. Send test data: `node scripts/send-sample.mjs http://localhost:3000/api/ingest`
+6. Send test data: `npm run send-sample` (or `node scripts/send-sample.mjs <url>`)
    - first run: `200 {"ackSeq":18,"inserted":18,"duplicates":0}`
    - second run: `200 {"ackSeq":18,"inserted":0,"duplicates":18}`
    - `--bad-sig`: `401 {"error":"bad signature"}`
@@ -47,21 +47,39 @@ scripts/send-sample.mjs signs and POSTs a sample batch
 > with "Turbopack is not supported ... native bindings are not available", the native SWC binary
 > is being blocked. Use `npx next dev --webpack` / `npx next build --webpack`. Vercel is unaffected.
 
-### Local Postgres with Docker
+### Changing the schema
+
+`prisma migrate dev` needs a shadow database to check the migration history. Use a throwaway
+Postgres in Docker instead of a second Neon database:
 
 ```bash
-docker run -d --name cocis-pg -e POSTGRES_PASSWORD=dev -p 5433:5432 postgres:16-alpine
-# ... steps 3-6 ...
-docker rm -f cocis-pg
+npm run db:shadow                        # postgres:16-alpine on localhost:55432
+export SHADOW_DATABASE_URL="postgresql://postgres:shadow@localhost:55432/postgres"
+npm run db:migrate:dev -- --name <change>   # writes prisma/migrations/<timestamp>_<change>/
+npm run db:shadow:stop
 ```
+
+To check that the migrations match the schema without touching any real database:
+`npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code`
+(with `SHADOW_DATABASE_URL` set as above).
 
 ## Deploy to Vercel
 
-1. Import the repo in Vercel and set **Root Directory** to `dashboard`.
-2. Add env vars `DATABASE_URL` and `DIRECT_URL` (Neon's Vercel integration can do this).
-3. Build command is `npm run build` (`prisma generate && next build`); `postinstall` also generates.
-4. Apply the schema to Neon from your machine once (`npx prisma db push` or `migrate deploy`)
-   and seed with a **real** secret: `DEVICE_SECRET=<long random> npx prisma db seed`.
+1. Push the repository to GitHub, then in Vercel: **Add New → Project**, import it, and set
+   **Root Directory** to `dashboard`. Framework, build (`npm run build` = `prisma generate &&
+   next build`) and output settings are detected.
+2. In the Neon store page (Vercel → Storage → the database), **Connect to Project** and pick this
+   project: it adds `DATABASE_URL` (and `DATABASE_URL_UNPOOLED`) to its environment variables.
+3. Deploy. The schema and the device are already in the database (`npm run db:migrate` and
+   `npm run db:seed` run from your machine against the same Neon database); for later schema
+   changes run `npm run db:migrate` again before or after deploying.
+4. Point the sample sender (or the hub) at the deployment:
+   `node scripts/send-sample.mjs https://<project>.vercel.app/api/ingest`
+
+**The device secret has two ends.** `npm run db:seed` stores `DEVICE_SECRET` in the `hub-01`
+row; `/api/ingest` checks every request against that row, so Vercel needs no copy of the secret.
+Whatever sends events signs with the same value: today `scripts/send-sample.mjs` (it reads
+`.env`), later the hub's uploader. To change the secret, edit `.env` and run `npm run db:seed`.
 
 ## API contract (summary of event-schema.md 2.2)
 
@@ -90,6 +108,3 @@ X-Signature: <hex HMAC-SHA256(key = device secret, msg = timestamp + "." + raw b
 | 200 | `{ "ackSeq": n, "inserted": i, "duplicates": d }` | stored; `ackSeq` = highest seq in the batch, so the hub can advance its outbox cursor |
 | 401 | `{ "error": ... }` | missing headers, stale timestamp, unknown device or bad signature |
 | 400 | `{ "error": ..., "issues"? }` | (only after a valid signature) body not JSON, schema violation, body `deviceId` ≠ header |
-
-Day-2 placeholders in the schema: `ScheduleConfig` (versioned per device) and `Command`
-(`PENDING`/`ACKED`/`REJECTED`) for `GET /api/devices/:id/commands`, which is not built yet.

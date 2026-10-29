@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 // Signs and POSTs a realistic batch to /api/ingest, exactly as the hub's cloud_sync task will.
 // Usage: node scripts/send-sample.mjs [url] [--bad-sig]
-//   env DEVICE_ID (default hub-01), DEVICE_SECRET (default the dev secret from .env.example)
+//   env DEVICE_ID (default hub-01) and DEVICE_SECRET (required), read from .env if present:
+//   the secret must be the one `npm run db:seed` stored for the device.
 // seq numbers are fixed, so running it twice must report duplicates, not errors.
 import { createHash, createHmac } from "node:crypto";
+import { existsSync } from "node:fs";
+
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 const args = process.argv.slice(2);
 const url = args.find((a) => !a.startsWith("--")) ?? "http://localhost:3000/api/ingest";
 const badSig = args.includes("--bad-sig");
 const deviceId = process.env.DEVICE_ID ?? "hub-01";
-const secret = process.env.DEVICE_SECRET ?? "dev-secret-hub-01-change-me";
+const secret = process.env.DEVICE_SECRET;
+if (!secret) {
+  console.error("DEVICE_SECRET is not set (put it in .env, see .env.example)");
+  process.exit(1);
+}
 
 // Today's date in EAT so the dashboard shows "today".
 const day = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
