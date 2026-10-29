@@ -66,11 +66,21 @@ removed, enabled and disabled from the CLI by an admin.
 \end{tabularx}
 \end{center}
 
-\screenshot[0.45\linewidth]{lcd-granted}{LCD after a granted entry scan.}
-  {LCD right after tapping the Blue card (Alice) on the ENTRY reader: "Welcome Alice / Entry door open", entry servo at 90 degrees.}
-
-\screenshot[0.5\linewidth]{lcd-denied}{LCD after a refused scan (anti-passback).}
-  {Tap the Blue card on the ENTRY reader again: "DENIED Alice / ANTI_PASSBACK".}
+\begin{figure}[H]
+\centering
+\begin{minipage}[b]{0.38\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{lcd-granted.png}\\[2pt]
+  {\small (a) Granted: the entry door opens}
+\end{minipage}\hspace{0.06\linewidth}
+\begin{minipage}[b]{0.42\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{lcd-denied.png}\\[2pt]
+  {\small (b) The same card again: anti-passback}
+\end{minipage}
+\caption{The LCD after card scans at the entry reader.}
+\label{fig:lcd-scans}
+\end{figure}
 
 \consolefig{access}{Log records of four scans at the real readers: Alice enters, tries to enter
   again (anti-passback), leaves at the exit reader, then an unregistered key fob (captured in
@@ -224,30 +234,12 @@ continues in a RAM ring buffer of the newest 32 lines and \code{ALERT code=SD_FA
 \label{sec:op-cli}
 The serial console (\file{components/cli/}) gives a \code{cocis>} prompt with history and
 \code{TAB} completion. \code{help} lists all commands; \cref{app:cli} gives the full reference.
-
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{@{}lL@{}}
-\toprule
-Group & Commands \\
-\midrule
-Monitoring (anyone) & \code{status} overview: time, schedule, open/closed, people inside, rooms,
-  storage, bus statistics; \code{who} muster list; \code{rooms} occupancy, lamp level, lux, energy;
-  \code{users} registered cards; \code{log tail [n]}, \code{log verify [date]},
-  \code{log echo on|off} \\
-Configuration (admin) & \code{schedule set}, \code{user add|del|enable|disable},
-  \code{light <room> auto|on|off}, \code{lockdown on|off}, \code{emergency clear},
-  \code{time set} \\
-Session & \code{login}, \code{logout} \\
-Simulation & \code{tap <UID> in|out} (any card at a reader), \code{node <1|2> offline|online}
-  (simulate a room losing its link) \\
-\bottomrule
-\end{tabularx}
-\end{center}
+The commands are grouped into monitoring (\code{status}, \code{who}, \code{rooms}, \code{users},
+\code{log}), configuration for an admin (\code{schedule}, \code{user}, \code{light},
+\code{lockdown}, \code{emergency}, \code{time}), the session (\code{login}, \code{logout}) and
+simulation (\code{tap}, \code{node}).
 With \code{log echo on}, every new log line is also printed live on the console as
 \code{[LOG] ...}, which turns the terminal into a live event monitor.
-
-\consolefig{status}{\code{status}: the system overview (captured in Wokwi).}
 
 % ----------------------------------------------------------------------------
 \subsection{LCD, buzzer and LED}
@@ -278,5 +270,5 @@ patterns for granted, denied, information and alarm.
         controlling its own lights meanwhile.
 \end{itemize}
 
-\screenshot[0.4\linewidth]{lcd-emergency}{Break-glass emergency: both doors held open, EMRG on the LCD.}
+\screenshot[0.3\linewidth]{lcd-emergency}{Break-glass emergency: both doors held open, EMRG on the LCD.}
   {Press e: LCD row 1 shows EMRG, both servos at 90 degrees.}

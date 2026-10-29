@@ -107,25 +107,3 @@ compiles and is tested on a PC.}
 \label{fig:layers}
 \end{figure}
 
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{@{}lL@{}}
-\toprule
-Component & Responsibility \\
-\midrule
-\code{common} & Shared enums (declared once with X-macros, which also generate their string
-  tables), the pin map \file{board_pins.h}, the task table \file{task_config.h}, SHA-256. \\
-\code{core_logic} & \textbf{Pure decision logic}: access rules, room lighting, admin two-factor state
-  machine. No hardware, no RTOS, so it is unit-tested on a PC. \\
-\code{drivers} & Thin hardware drivers: I2C bus, LCD2004, DS1307 RTC, MFRC522 RFID reader,
-  buttons, PWM (servo, lamp, buzzer), light sensor. \\
-\code{bus} & Messages between terminals with sequence numbers and duplicate rejection. \\
-\code{storage} & The SD card gatekeeper task and the hash-chained log. \\
-\code{services} & Shared state, each module behind its own mutex and persisted in NVS: users,
-  config (schedule, lockdown), occupancy ledger, auth session, clock. \\
-\code{ui} & The task that owns the LCD, buzzer and green LED. \\
-\code{nodes} & The three terminals (hub, two rooms), the door servos and the RFID reader task. \\
-\code{cli} & The serial management menu (\code{esp_console}). \\
-\bottomrule
-\end{tabularx}
-\end{center}

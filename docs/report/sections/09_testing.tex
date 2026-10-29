@@ -56,7 +56,7 @@ Observed results:
 Scenario & Result \\
 \midrule
 Boot & RTC time read, SD card mounted, SHA-256 self-test passed, 4 demo cards seeded, both
-  RFID readers ready (MFRC522 version 0x92), both rooms online (\cref{fig:con-boot}). \\
+  RFID readers ready (MFRC522 version 0x92), both rooms online. \\
 Card scans & Blue, Green and Yellow cards at the entry reader: \code{ok=1}; the Blue card again:
   \code{ANTI_PASSBACK}; the Blue card at the exit reader: \code{OK}, side \code{OUT}; the key fob:
   \code{UNKNOWN_CARD} (\cref{fig:con-access}). \\
@@ -81,9 +81,6 @@ Energy & \code{ENERGY} lines appeared every 10 minutes for both rooms. \\
 \bottomrule
 \end{tabularx}
 \end{center}
-
-\consolefig{boot}{Boot log in Wokwi: storage, self-test, users, ledger and both RFID readers come
-  up before the terminals start.}
 
 \consolefig{rules}{The rules scenario in Wokwi: after-hours exit refused and escorted, lockdown,
   a room terminal going offline, and break-glass (log lines shortened: \code{|...|} is the time

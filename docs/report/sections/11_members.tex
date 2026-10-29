@@ -29,9 +29,9 @@ Member & Area and responsibilities & Main files \\
 \endhead
 \mAname & \textbf{Integration, storage and synchronisation.} System architecture and boot order,
   node bus with sequence numbers, SD card gatekeeper and hash-chained log, occupancy ledger and
-  NVS persistence, Wokwi diagram generator, report. &
+  NVS persistence, Wokwi circuit, report. &
   \file{main/main.c}, \file{bus/bus.c}, \file{storage/storage.c}, \file{services/occupancy.c},
-  \file{services/nvs_store.c}, \file{tools/gen_diagram.py} \\
+  \file{services/nvs_store.c} \\
 \mBname & \todo{confirm} \textbf{Entrance access control.} MFRC522 RFID reader driver and
   reader task, access rules (anti-passback, schedule, lockdown, escort), door servos, card-scan
   flow. &
@@ -51,21 +51,11 @@ Member & Area and responsibilities & Main files \\
 \end{longtable}
 }
 
-\subsection{Individual video demonstrations}
+\subsection{Video demonstration}
 \label{sec:videos}
-Each member recorded a screen video explaining the system and demonstrating the code and features
-listed against their name above.
+One video, in which each member in turn explains the system and demonstrates the code and
+features listed against their name above, in the order of the table:
 
 \begin{center}
-\begin{tabular}{@{}cll@{}}
-\toprule
-\# & Member & Video link \\
-\midrule
-1 & \mAname & \mAvideo \\
-2 & \mBname & \mBvideo \\
-3 & \mCname & \mCvideo \\
-4 & \mDname & \mDvideo \\
-5 & \mEname & \mEvideo \\
-\bottomrule
-\end{tabular}
+\videolink
 \end{center}

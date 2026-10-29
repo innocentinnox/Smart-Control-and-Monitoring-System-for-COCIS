@@ -60,7 +60,7 @@ scanned from the CLI with \code{tap <UID> in|out}.
 
 \subsection{Pin map}
 \file{components/common/include/board_pins.h} is the single source of truth. Pins follow the
-board's physical header order, which keeps the diagram's wiring tidy (\cref{sec:wiring}).
+board's physical header order, which keeps the wiring tidy (\cref{sec:wiring}).
 
 {\small
 \begin{longtable}{@{}llll@{}}
@@ -93,35 +93,28 @@ share ADC unit~1, protected by a mutex (\cref{sec:sync}).
 
 \subsection{Wiring}
 \label{sec:wiring}
-The Wokwi diagram is \textbf{generated}, not drawn by hand. \file{firmware/tools/gen_diagram.py}
-reads the GPIO numbers from \file{board_pins.h}, places each part beside the header pins it uses,
-routes every wire with explicit horizontal and vertical segments, adds a text label to every group,
-and then checks the result: no two different nets overlap and no wire runs through a part. Point-to-%
-point signals never cross; the readers' shared bus lines and the power and ground rails cross other
-wires only at right angles.
-\code{make diagram} regenerates both \file{diagram.json} and \cref{fig:wiring}.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{wiring.png}
-\caption{Wiring layout rendered by \code{gen_diagram.py --preview}. Left: the two lecture rooms,
-the SD card and the buzzer. Centre: the ESP32-S3. Right, top: the entry and exit RFID readers
-(orange: SPI). Right, below: LCD, RTC, the two door servos, break-glass button and granted LED.
-Red = power, grey = ground.}
-\label{fig:wiring}
-\end{figure}
+\Cref{fig:wokwi} shows the complete circuit in Wokwi; \cref{fig:wokwi-parts} shows the entrance,
+a reader's control panel and a lecture room.
 
 \screenshot{wokwi}{The complete circuit running in the Wokwi simulator.}
   {Whole Wokwi canvas while the simulation runs (zoom out until every part is visible).}
 
-\screenshot[0.55\linewidth]{wokwi-entrance}{Entrance terminal: entry and exit RFID readers, LCD,
-  RTC, door servos, break-glass button and granted LED.}
-  {Zoom in on the right half: both readers, LCD, RTC, both servos, break-glass, LED.}
-
-\screenshot[0.8\linewidth]{wokwi-reader}{An RFID reader's control panel in Wokwi: pick a card,
-  then Tap or Hold it.}
-  {Click the ENTRY reader so its panel with the card list and the Tap / Hold controls is open.}
-
-\screenshot[0.7\linewidth]{wokwi-room}{A lecture-room terminal: PIR sensor, light sensor and lamp.
-  The PIR and light-sensor controls are opened by clicking the part.}
-  {Zoom in on Lecture Room 1 with the lamp ON and the LDR slider panel open.}
+\begin{figure}[H]
+\centering
+\begin{minipage}[c]{0.36\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{wokwi-entrance.png}\\[2pt]
+  {\small (a) Entrance terminal}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.6\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{wokwi-reader.png}\\[2pt]
+  {\small (b) A reader's control panel: pick a card, then Tap or Hold}\\[10pt]
+  \includegraphics[width=0.9\linewidth]{wokwi-room.png}\\[2pt]
+  {\small (c) Lecture room 1: lamp on, light-sensor panel open}
+\end{minipage}
+\caption{Parts of the circuit in Wokwi. (a) The entrance: entry and exit RFID readers, LCD, RTC,
+door servos, break-glass button and granted LED. (b) Clicking a reader opens its panel.
+(c) A lecture room: PIR sensor, light sensor and lamp; clicking a sensor opens its controls.}
+\label{fig:wokwi-parts}
+\end{figure}

@@ -75,8 +75,9 @@
 
 % ---- section styling --------------------------------------------------------
 \usepackage{titlesec}
-\titleformat{\section}{\newpage\LARGE\bfseries}{\thesection}{0.6em}{}
-\setcounter{tocdepth}{2}
+\titleformat{\section}{\LARGE\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{2.2ex plus 1ex minus .2ex}{1.2ex plus .2ex}
+\setcounter{tocdepth}{1}
 \setcounter{secnumdepth}{3}
 
 % \consolefig{file}{caption}: real serial output captured from a Wokwi run
