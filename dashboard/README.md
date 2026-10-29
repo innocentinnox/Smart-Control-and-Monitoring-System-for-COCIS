@@ -1,6 +1,8 @@
 # CoCIS Smart Control: cloud dashboard
 
-Next.js 16 (App Router) + Prisma 7 + Neon Postgres, deployable to Vercel. Receives the hub's signed
+Live: https://smart-control-and-monitoring-system.vercel.app/
+
+Next.js 16 (App Router) + Prisma 7 + Neon Postgres, deployed on Vercel. Receives the hub's signed
 event batches on `POST /api/ingest` and shows who is inside, room state, alerts, the access log
 and per-room energy. The binding contract is [`../docs/event-schema.md`](../docs/event-schema.md).
 

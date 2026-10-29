@@ -112,6 +112,8 @@ into a throwaway Docker Postgres matches the schema exactly. With the production
 against Neon, the sample sender inserted 18 events, then 18 duplicates on a second run
 (idempotent); a bad signature and a stale timestamp were rejected with HTTP 401, and a signed but
 malformed batch with HTTP 400. The overview, access-log and energy pages render the stored data
-(\cref{fig:dashboard}).
+(\cref{fig:dashboard}). The same checks pass against the Vercel deployment: pages load from
+Neon, a signed new event is stored, re-sent events count as duplicates, and tampered,
+stale or malformed requests get 401 or 400.
 
 

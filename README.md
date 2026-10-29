@@ -46,4 +46,5 @@ make sim        # run the Wokwi scenarios in firmware/test/wokwi/ (wokwi-cli + W
 
 ## Dashboard (optional layer)
 
-See [dashboard/README.md](dashboard/README.md).
+Live: https://smart-control-and-monitoring-system.vercel.app/ (sample data). Setup, the ingest
+API and deployment are in [dashboard/README.md](dashboard/README.md).
