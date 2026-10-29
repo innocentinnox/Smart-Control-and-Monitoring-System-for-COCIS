@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "./generated/prisma/client";
 import { prisma } from "./db";
 
 export const ROOMS = [1, 2] as const;

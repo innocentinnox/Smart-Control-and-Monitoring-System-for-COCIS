@@ -7,31 +7,40 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "db:push": "prisma db push",
+    "typecheck": "prisma generate && tsc --noEmit",
     "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:shadow": "docker run -d --rm --name cocis-shadow -e POSTGRES_PASSWORD=shadow -p 55432:5432 postgres:16-alpine",
+    "db:shadow:stop": "docker stop cocis-shadow",
     "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
     "send-sample": "node scripts/send-sample.mjs",
     "postinstall": "prisma generate"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.10.1",
+    "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "prisma": "6.19.3",
+    "dotenv": "18.0.9",
+    "prisma": "7.10.1",
     "tailwindcss": "4.3.3",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "next": "16.4.3",
+    "pg": "8.23.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "4.6.7"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.10.1": true,
+    "prisma@7.10.1": true,
+    "esbuild@0.28.2": true
   }
 }

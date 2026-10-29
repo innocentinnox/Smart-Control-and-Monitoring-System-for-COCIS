@@ -4,14 +4,15 @@
 // comes from an event carries (deviceId, seq) as a unique key, which is what makes
 // re-sending a batch harmless.
 
+// Prisma 7: the TypeScript client is generated into lib/generated/prisma (git-ignored) and
+// connects through a driver adapter (lib/db.ts). Connection strings live in prisma.config.ts.
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model Device {
@@ -28,8 +29,6 @@ model Device {
   lights    LightEvent[]
   energy    EnergySample[]
   alerts    Alert[]
-  schedules ScheduleConfig[]
-  commands  Command[]
 }
 
 /// Raw event log, one row per hub event.
@@ -68,7 +67,7 @@ model AccessEvent {
   @@index([ts])
 }
 
-/// Room occupied <-> vacant transitions.
+/// Room state changes: occupied <-> vacant, or daylight crossing a threshold.
 model RoomEvent {
   id       Int      @id @default(autoincrement())
   deviceId String
@@ -76,6 +75,8 @@ model RoomEvent {
   ts       DateTime
   room     Int
   occupied Boolean
+  daylight Boolean? // enough daylight for the lamp to stay off
+  lux      Int? // measured light level
 
   device Device @relation(fields: [deviceId], references: [id])
 
@@ -91,6 +92,7 @@ model LightEvent {
   room     Int
   level    Int // 0-100 %
   mode     String // AUTO | ON | OFF
+  lux      Int? // light level when the lamp changed
 
   device Device @relation(fields: [deviceId], references: [id])
 
@@ -127,42 +129,4 @@ model Alert {
 
   @@unique([deviceId, seq])
   @@index([ts])
-}
-
-// ---- Day 2 placeholders: cloud proposes, device pulls and decides ----
-
-/// Versioned schedule; the device applies a version only if it is newer than its own.
-model ScheduleConfig {
-  id        Int      @id @default(autoincrement())
-  deviceId  String
-  version   Int
-  config    Json
-  createdBy String?
-  createdAt DateTime @default(now())
-
-  device Device @relation(fields: [deviceId], references: [id])
-
-  @@unique([deviceId, version])
-}
-
-enum CommandStatus {
-  PENDING
-  ACKED
-  REJECTED
-}
-
-/// Pulled by the device via GET /api/devices/:id/commands, then acknowledged.
-model Command {
-  id        Int           @id @default(autoincrement())
-  deviceId  String
-  type      String // e.g. SET_SCHEDULE, LIGHT_MODE
-  payload   Json
-  version   Int
-  status    CommandStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-  ackedAt   DateTime?
-
-  device Device @relation(fields: [deviceId], references: [id])
-
-  @@index([deviceId, status])
 }

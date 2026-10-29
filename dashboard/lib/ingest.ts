@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "./generated/prisma/client";
 import { prisma } from "./db";
 import { eatToDate } from "./time";
 
@@ -28,11 +28,13 @@ const accessData = z.looseObject({
     "OUTSIDE_HOURS", "ANTI_PASSBACK", "LOCKDOWN",
   ]),
 });
-const roomData = z.looseObject({ room, occupied: flag });
+const lux = z.number().int().nonnegative();
+const roomData = z.looseObject({ room, occupied: flag, daylight: flag.optional(), lux: lux.optional() });
 const lightData = z.looseObject({
   room,
   level: z.number().int().min(0).max(100),
   mode: z.enum(["AUTO", "ON", "OFF"]),
+  lux: lux.optional(),
 });
 const energyData = z.looseObject({
   room,
@@ -125,10 +127,10 @@ async function project(tx: Prisma.TransactionClient, deviceId: string, events: I
         break;
       }
       case "ROOM":
-        rooms.push({ ...key, room: e.data.room, occupied: e.data.occupied });
+        rooms.push({ ...key, room: e.data.room, occupied: e.data.occupied, daylight: e.data.daylight, lux: e.data.lux });
         break;
       case "LIGHT":
-        lights.push({ ...key, room: e.data.room, level: e.data.level, mode: e.data.mode });
+        lights.push({ ...key, room: e.data.room, level: e.data.level, mode: e.data.mode, lux: e.data.lux });
         break;
       case "ENERGY":
         energy.push({ ...key, room: e.data.room, onWh: e.data.on_wh, savedWh: e.data.saved_wh });
