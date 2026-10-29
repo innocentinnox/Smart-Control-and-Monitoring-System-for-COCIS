@@ -60,8 +60,9 @@ the following, grouped by the goal named in the brief.
 \end{itemize}
 
 \subsection{Optional cloud dashboard (prepared extension)}
-\file{dashboard/} contains a Next.js web application with a PostgreSQL database (Prisma ORM,
-intended for Vercel and Neon). It receives the same events as the SD log through
+\file{dashboard/} contains a Next.js~16 web application for Vercel, storing data in a Neon
+Postgres database through Prisma~7 (versioned SQL migrations, a node-postgres driver adapter on
+Neon's pooled endpoint). It receives the same events as the SD log through
 \code{POST /api/ingest}:
 \begin{itemize}
   \item Requests are authenticated with an HMAC-SHA256 signature and a timestamp; stale or forged
@@ -72,7 +73,7 @@ intended for Vercel and Neon). It receives the same events as the SD log through
         saved.
 \end{itemize}
 \screenshot{dashboard}{Dashboard overview page with sample events: people inside, rooms and alerts.}
-  {Browser at http://localhost:3000 after `npm run dev` and the sample sender (dashboard/README.md).}
+  {Dashboard overview with the sample events.}
 
 It was tested end to end with a script that sends signed sample events. The firmware does
 \emph{not} yet send events to it (\cref{sec:limitations}), and the system never depends on it.
