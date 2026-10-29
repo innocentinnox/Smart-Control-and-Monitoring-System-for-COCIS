@@ -53,6 +53,10 @@ export default async function Overview() {
               <div className="text-sm text-slate-600">
                 Light {light ? `${light.level}% (${light.mode})` : "–"}
               </div>
+              <div className="text-xs text-slate-500">
+                {occupancy?.lux != null ? `${occupancy.lux} lux` : "light level –"}
+                {occupancy?.daylight != null && (occupancy.daylight ? " · daylight, lamp not needed" : " · dark")}
+              </div>
               <div className="mt-2 h-2 rounded bg-slate-100">
                 <div className="h-2 rounded bg-amber-400" style={{ width: `${light?.level ?? 0}%` }} />
               </div>
