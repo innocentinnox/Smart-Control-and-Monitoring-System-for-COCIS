@@ -5,7 +5,7 @@
 # card + PIN and changes the schedule, then status / log tail / log verify.
 name: Management console walk-through
 version: 1
-author: CoCIS Group 28
+author: CoCIS Group 16
 
 steps:
   - wait-serial: 'OUT reader ready'

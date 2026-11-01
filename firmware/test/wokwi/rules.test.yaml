@@ -2,7 +2,7 @@
 #   wokwi-cli firmware --scenario test/wokwi/rules.test.yaml --timeout 120000
 name: After hours, escort, offline node, lockdown, break-glass
 version: 1
-author: CoCIS Group 28
+author: CoCIS Group 16
 
 steps:
   - wait-serial: 'OUT reader ready'
