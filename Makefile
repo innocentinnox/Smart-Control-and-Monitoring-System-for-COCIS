@@ -1,4 +1,4 @@
-# Common tasks for the Group 16 CoCIS Smart Control & Monitoring System.
+# Common tasks for the Group 15 CoCIS Smart Control & Monitoring System.
 # Works from PowerShell, cmd or Git Bash (recipes only use commands valid in all of them).
 #
 #   make pdf          build docs/report.pdf (needs only MiKTeX); `make report` does the same

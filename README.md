@@ -1,7 +1,7 @@
 # CoCIS Smart Control & Monitoring System
 
 ESP32-S3 access control, occupancy monitoring and automatic lighting for the CoCIS main
-entrance and two lecture rooms (Embedded Systems coursework, Group 16, 2026/2027).
+entrance and two lecture rooms (Embedded Systems coursework, Group 15, 2026/2027).
 
 - **Entrance:** two MFRC522 RFID readers (entry and exit), two servo door locks, an LCD,
   a buzzer and a break-glass button. Anti-passback, a configurable opening schedule that also
